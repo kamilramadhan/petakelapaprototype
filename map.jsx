@@ -95,18 +95,24 @@ window.PetaMap = function PetaMap(props) {
   }
 
   // Pan/zoom
-  const drag = useRef({ active: false, x: 0, y: 0 });
+  const drag = useRef({ active: false, pending: false, x: 0, y: 0, tx: 0, ty: 0 });
   function onMouseDown(e) {
     if (e.target.closest('.dock-panel, .info-card, .legend, .mode-pill, .bar3d-ctrl, .map-toolbar, .cesium-banner')) return;
-    drag.current = { active: true, x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
+    drag.current = { active: false, pending: true, x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
   }
   function onMouseMove(e) {
-    if (!drag.current.active) return;
+    if (!drag.current.pending && !drag.current.active) return;
     const dx = e.clientX - drag.current.x;
     const dy = e.clientY - drag.current.y;
+    if (drag.current.pending) {
+      const movedEnough = Math.abs(dx) + Math.abs(dy) > 5;
+      if (!movedEnough) return;
+      drag.current.pending = false;
+      drag.current.active = true;
+    }
     setTransform(t => ({ ...t, x: drag.current.tx + dx, y: drag.current.ty + dy }));
   }
-  function onMouseUp() { drag.current.active = false; }
+  function onMouseUp() { drag.current.active = false; drag.current.pending = false; }
   function onWheel(e) {
     if (e.target.closest('.dock-panel, .info-card')) return;
     e.preventDefault();
