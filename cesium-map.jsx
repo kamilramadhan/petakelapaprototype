@@ -394,8 +394,11 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
 
     handler.setInputAction((move) => {
       const picked = viewer.scene.pick(move.endPosition);
+      const canvas = viewer.scene.canvas;
       if (picked && picked.id && picked.id.properties) {
         const type = picked.id.properties.type?.getValue();
+        // Cursor: show pointer over any interactive entity
+        canvas.classList.add("pkd-pickable");
         if (type === "kabupaten") {
           const kabId = picked.id.properties.kabId.getValue();
           const k = PKD.KABUPATEN.find(x => x.id === kabId);
@@ -407,7 +410,10 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
             return;
           }
         }
+        setHoverInfo(null);
+        return;
       }
+      canvas.classList.remove("pkd-pickable");
       setHoverInfo(null);
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
@@ -558,7 +564,7 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
   }, [selectedKab && selectedKab.id, ready]);
 
   return (
-    <div className="map-wrap">
+    <div className="map-wrap" style={{ cursor: "default" }}>
       {initError && (
         <div style={{ position: "absolute", inset: 0, zIndex: 5 }}>
           <PetaMap {...props} />
