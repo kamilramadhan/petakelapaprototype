@@ -108,6 +108,51 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     return "#2D6A4F";
   }
 
+  function pointInRing(lon, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0];
+      const yi = ring[i][1];
+      const xj = ring[j][0];
+      const yj = ring[j][1];
+      const denom = (yj - yi) || 1e-9;
+      const intersect = ((yi > lat) !== (yj > lat)) &&
+        (lon < (xj - xi) * (lat - yi) / denom + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function pickKabFromLonLat(lon, lat) {
+    let hit = null;
+    for (const k of PKD.KABUPATEN) {
+      if (pointInRing(lon, lat, k.ring)) { hit = k; break; }
+    }
+    if (hit) return hit;
+    let best = null;
+    let bestDist = Infinity;
+    PKD.KABUPATEN.forEach(k => {
+      const dx = lon - k.centroid[0];
+      const dy = lat - k.centroid[1];
+      const d = (dx * dx) + (dy * dy);
+      if (d < bestDist) { bestDist = d; best = k; }
+    });
+    return best;
+  }
+
+  function pickKabFromScreen(position) {
+    const viewer = viewerRef.current;
+    if (!viewer) return null;
+    const scene = viewer.scene;
+    const cartesian = scene.pickPosition(position) ||
+      viewer.camera.pickEllipsoid(position, scene.globe.ellipsoid);
+    if (!cartesian) return null;
+    const carto = Cesium.Cartographic.fromCartesian(cartesian);
+    const lon = Cesium.Math.toDegrees(carto.longitude);
+    const lat = Cesium.Math.toDegrees(carto.latitude);
+    return pickKabFromLonLat(lon, lat);
+  }
+
   // ===== Initialize Cesium viewer once =====
   cmUseEffect(() => {
     if (!window.Cesium || !containerRef.current) return;
@@ -373,22 +418,27 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     handler.setInputAction((click) => {
+      let handled = false;
       const picked = viewer.scene.pick(click.position);
       if (picked && picked.id && picked.id.properties) {
         const type = picked.id.properties.type?.getValue();
         if (type === "kabupaten") {
           const kabId = picked.id.properties.kabId.getValue();
           const k = PKD.KABUPATEN.find(x => x.id === kabId);
-          if (k) props.onSelectKab(k);
+          if (k) { props.onSelectKab(k); handled = true; }
         } else if (type === "factory") {
           const fid = picked.id.properties.facId.getValue();
           const f = PKD.FACTORIES.find(x => x.id === fid);
-          if (f) props.onSelectFactory && props.onSelectFactory(f);
+          if (f && props.onSelectFactory) { props.onSelectFactory(f); handled = true; }
         } else if (type === "port") {
           const pid = picked.id.properties.portId.getValue();
           const p = PKD.PORTS.find(x => x.id === pid);
-          if (p) props.onSelectPort && props.onSelectPort(p);
+          if (p && props.onSelectPort) { props.onSelectPort(p); handled = true; }
         }
+      }
+      if (!handled) {
+        const k = pickKabFromScreen(click.position);
+        if (k) props.onSelectKab(k);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 

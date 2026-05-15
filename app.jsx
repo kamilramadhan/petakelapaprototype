@@ -209,6 +209,9 @@ function Dashboard({ user, onLogout }) {
 
             <MapToolbar />
             <Legend mode={mode} derivatifFilter={mode === "investasi" ? investDerivatif : derivatifFilter} />
+            {mode === "investasi" && (
+              <KesesuaianControl derivatif={investDerivatif} setDerivatif={setInvestDerivatif} />
+            )}
 
             <ModePill
               modes={["default", "cias", "investasi", "interseksi"]}
@@ -371,6 +374,17 @@ function MapToolbar() {
       <button className="mt-btn" title="Tilt down" onClick={() => window.__pkdMapTilt && window.__pkdMapTilt(-5)}>↓</button>
       <div className="mt-sep" />
       <button className="mt-btn" title="Reset view" onClick={() => window.__pkdMapReset && window.__pkdMapReset()}>⌖</button>
+    </div>
+  );
+}
+
+function KesesuaianControl({ derivatif, setDerivatif }) {
+  return (
+    <div className="kesesuaian-ctrl">
+      <span className="kc-label">Derivatif</span>
+      <select value={derivatif} onChange={e => setDerivatif(e.target.value)}>
+        {PKD.DERIVATIF.map(d => <option key={d} value={d}>{d}</option>)}
+      </select>
     </div>
   );
 }

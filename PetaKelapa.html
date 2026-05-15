@@ -890,6 +890,33 @@ input[type=range]::-webkit-slider-thumb {
   font-size: 12px;
 }
 
+/* Kesesuaian derivatif selector */
+.kesesuaian-ctrl {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--shadow-soft);
+  z-index: 12;
+}
+.kesesuaian-ctrl .kc-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.kesesuaian-ctrl select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
 /* ============================================
    GENERIC MODAL (for sub-layer threshold / upload dialogs)
    ============================================ */
