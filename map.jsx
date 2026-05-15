@@ -22,6 +22,7 @@ window.PetaMap = function PetaMap(props) {
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const [tilt, setTilt] = useState(14);
   const [hoverKab, setHoverKab] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -95,24 +96,22 @@ window.PetaMap = function PetaMap(props) {
   }
 
   // Pan/zoom
-  const drag = useRef({ active: false, pending: false, x: 0, y: 0, tx: 0, ty: 0 });
+  const drag = useRef({ active: false, x: 0, y: 0 });
   function onMouseDown(e) {
     if (e.target.closest('.dock-panel, .info-card, .legend, .mode-pill, .bar3d-ctrl, .map-toolbar, .cesium-banner')) return;
-    drag.current = { active: false, pending: true, x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
+    drag.current = { active: true, x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
   }
   function onMouseMove(e) {
-    if (!drag.current.pending && !drag.current.active) return;
+    if (wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setMousePos({ x: e.clientX - r.left, y: e.clientY - r.top });
+    }
+    if (!drag.current.active) return;
     const dx = e.clientX - drag.current.x;
     const dy = e.clientY - drag.current.y;
-    if (drag.current.pending) {
-      const movedEnough = Math.abs(dx) + Math.abs(dy) > 5;
-      if (!movedEnough) return;
-      drag.current.pending = false;
-      drag.current.active = true;
-    }
     setTransform(t => ({ ...t, x: drag.current.tx + dx, y: drag.current.ty + dy }));
   }
-  function onMouseUp() { drag.current.active = false; drag.current.pending = false; }
+  function onMouseUp() { drag.current.active = false; }
   function onWheel(e) {
     if (e.target.closest('.dock-panel, .info-card')) return;
     e.preventDefault();
@@ -241,20 +240,27 @@ window.PetaMap = function PetaMap(props) {
             </g>
           )}
 
-          {/* Kabupaten polygons */}
-          {activeLayers.has("produksi") && PKD.KABUPATEN.map(k => {
+          {/* Kabupaten polygons — ALWAYS rendered so they are always clickable.
+               Fill/stroke reflects active mode; opacity is reduced when in default mode
+               to give a subtle "background" feel. */}
+          {PKD.KABUPATEN.map(k => {
             const isSel = selectedKab && selectedKab.id === k.id;
             const isHover = hoverKab && hoverKab.id === k.id;
             const isHit = intersectionHits && intersectionHits.has(k.id);
+            // In default mode show a light fill so polygons are visible but not
+            // distracting.  In CIAS / gap / investasi mode show full choropleth.
+            const fill = kabFill(k);
+            const opacity = isHit ? 0.9 :
+              (mode === "default" ? (isHover || isSel ? 0.65 : 0.45) : 0.78);
             return (
               <path
                 key={k.id}
                 d={ringToD(k.ring)}
-                fill={kabFill(k)}
-                fillOpacity={isHit ? 0.85 : (mode === "default" ? 0.6 : 0.75)}
-                stroke={isSel ? "#2D6A4F" : kabStroke(k)}
-                strokeWidth={isSel ? 2.2 : (isHover ? 1.5 : 0.8)}
-                style={{ cursor: "pointer", transition: "stroke 120ms, stroke-width 120ms" }}
+                fill={fill}
+                fillOpacity={opacity}
+                stroke={isSel ? "#2D6A4F" : (isHover ? "#2D6A4F" : kabStroke(k))}
+                strokeWidth={isSel ? 2.5 : (isHover ? 1.6 : 0.9)}
+                style={{ cursor: "pointer", transition: "stroke 120ms, stroke-width 120ms, fill-opacity 120ms" }}
                 onMouseEnter={() => setHoverKab(k)}
                 onMouseLeave={() => setHoverKab(null)}
                 onClick={(e) => { e.stopPropagation(); onSelectKab(k); }}
@@ -364,7 +370,7 @@ window.PetaMap = function PetaMap(props) {
       </div>
 
       {hoverKab && (
-        <div className="hover-card" style={{ left: pt(hoverKab.centroid)[0] + 20, top: pt(hoverKab.centroid)[1] - 30 }}>
+        <div className="hover-card" style={{ left: mousePos.x + 14, top: Math.max(8, mousePos.y - 90) }}>
           <div className="hc-name">{hoverKab.name}</div>
           <div className="hc-prov">{hoverKab.province}</div>
           <div className="hc-row"><span>CIAS</span><b style={{ color: ciasColor(hoverKab.cias) }}>{hoverKab.cias.toFixed(2)}</b></div>

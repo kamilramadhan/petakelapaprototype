@@ -253,6 +253,59 @@ window.PKD = (function () {
     k.lfi = Math.max(0, Math.min(1, 1 - (best.d / 600)));
   });
 
+  // Pre-adjusted thresholds for default ("investor-style") view.
+  // op: ">" (needs to be greater), "<" (needs to be less),
+  //     "between" (val..val2 inclusive). All values use the layer's natural unit.
+  // These define "kesesuaian" — a kabupaten is "sesuai" for the layer if it passes.
+  const THRESHOLDS = {
+    "ph":          { op: "between", val: 5.5,  val2: 7.0, unit: "",      label: "pH H₂O 15–30cm",       good: "Optimal pH" },
+    "curah-hujan": { op: ">",       val: 1500,            unit: "mm/thn", label: "Curah hujan tahunan",  good: "Cukup basah" },
+    "suhu":        { op: "<",       val: 28,              unit: "°C",    label: "Suhu rata-rata",        good: "Sejuk untuk kelapa" },
+    "elevasi":     { op: "<",       val: 600,             unit: "m",     label: "Elevasi",               good: "Rendah, mudah panen" },
+    "soc":         { op: ">",       val: 15,              unit: "g/kg",  label: "Soil Organic Carbon",   good: "Tanah subur" },
+    "n":           { op: ">",       val: 1.5,             unit: "g/kg",  label: "Nitrogen 15–30cm",      good: "Hara tinggi" },
+    "clay":        { op: "between", val: 18,   val2: 35,  unit: "%",     label: "Clay 15–30cm",          good: "Tekstur ideal" },
+    "sand":        { op: "<",       val: 60,              unit: "%",     label: "Sand 15–30cm",          good: "Drainase baik" },
+    "cec":         { op: ">",       val: 12,              unit: "cmol/kg", label: "CEC 15–30cm",         good: "Kapasitas tukar baik" },
+    "produksi":    { op: ">",       val: 80000,           unit: "t/thn", label: "Produksi kelapa",       good: "Suplai bahan baku" },
+    "kebun-kelapa":{ op: ">",       val: 0.40,            unit: "idx",   label: "Densitas kebun",        good: "Lahan kelapa luas" },
+    "factories":   { op: ">",       val: 1,               unit: "unit",  label: "Pabrik pengolahan",     good: "Hilirisasi aktif" },
+    "pelabuhan":   { op: "<",       val: 200,             unit: "km",    label: "Jarak pelabuhan",       good: "Logistik dekat" },
+    "roads":       { op: ">",       val: 0.55,            unit: "idx",   label: "Densitas jalan",        good: "Akses baik" },
+    "nightlight":  { op: ">",       val: 0.30,            unit: "idx",   label: "Night Light VIIRS",     good: "Aktivitas ekonomi" },
+  };
+
+  // For each kabupaten, simulate a layer value using existing scores so the sub-layer
+  // score is consistent with the kabupaten's CIAS.
+  function layerValue(k, layerId) {
+    switch (layerId) {
+      case "ph":           return 5 + k.envSuit * 1.4;
+      case "curah-hujan":  return 1500 + k.envSuit * 1300;
+      case "suhu":         return 32 - k.envSuit * 6;
+      case "elevasi":      return 100 + (k.centroid[1] + 5) * 60;
+      case "soc":          return 10 + k.envSuit * 22;
+      case "n":            return 0.5 + k.envSuit * 2.5;
+      case "clay":         return 12 + k.envSuit * 25;
+      case "sand":         return 75 - k.envSuit * 30;
+      case "cec":          return 6 + k.envSuit * 14;
+      case "produksi":     return k.production;
+      case "kebun-kelapa": return Math.min(1, k.production / 250000);
+      case "factories":    return k.factories;
+      case "pelabuhan":    return k.distToPort;
+      case "roads":        return k.lfi;
+      case "nightlight":   return Math.min(1, k.procStrength);
+      default: return 0;
+    }
+  }
+
+  function passesThreshold(value, t) {
+    if (t.op === ">") return value > t.val;
+    if (t.op === "<") return value < t.val;
+    if (t.op === "=") return Math.abs(value - t.val) < (Math.abs(t.val) * 0.05);
+    if (t.op === "between") return value >= t.val && value <= t.val2;
+    return false;
+  }
+
   // Scenario simulation history
   const SCENARIOS = [
     { id: "sc-1", name: "Baseline 2026", delta: 0, ts: "2026-05-08 14:22" },
@@ -260,5 +313,5 @@ window.PKD = (function () {
     { id: "sc-3", name: "Upgrade Pel. Bitung", delta: 0.04, ts: "2026-05-12 11:03" },
   ];
 
-  return { REGIONS, KABUPATEN, FACTORIES, PORTS, LAYERS, DERIVATIF, DERIVATIF_COLOR, SCENARIOS, tier };
+  return { REGIONS, KABUPATEN, FACTORIES, PORTS, LAYERS, DERIVATIF, DERIVATIF_COLOR, SCENARIOS, THRESHOLDS, layerValue, passesThreshold, tier };
 })();

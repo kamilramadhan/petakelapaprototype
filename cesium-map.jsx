@@ -480,12 +480,16 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
       if (!ent) return;
       const fillCss = kabFillCss(k);
       const outlineCss = kabOutlineCss(k);
-      ent.polygon.material = Cesium.Color.fromCssColorString(fillCss).withAlpha(
-        intersectionHits && intersectionHits.has(k.id) ? 0.78 : (mode === "default" ? 0.45 : 0.62)
-      );
-      ent.polygon.outlineColor = Cesium.Color.fromCssColorString(outlineCss);
+      // Always show kabupaten so they remain pickable/clickable regardless of layer state.
+      // Use opacity to reflect whether the "produksi" layer is toggled on.
+      const produksiOn = activeLayers.has("produksi");
+      const baseAlpha = intersectionHits && intersectionHits.has(k.id) ? 0.82
+        : (mode === "default" ? (produksiOn ? 0.52 : 0.22) : 0.65);
+      ent.polygon.material = Cesium.Color.fromCssColorString(fillCss).withAlpha(baseAlpha);
+      ent.polygon.outlineColor = Cesium.Color.fromCssColorString(outlineCss)
+        .withAlpha(produksiOn ? 1.0 : 0.35);
       ent.polygon.outlineWidth = (selectedKab && selectedKab.id === k.id) ? 3 : 1;
-      ent.show = activeLayers.has("produksi");
+      ent.show = true; // always visible & pickable — opacity above conveys layer state
     });
   }, [mode, scenarioDelta, intersectionHits, selectedKab, selectedDerivatif, ready, activeLayers]);
 

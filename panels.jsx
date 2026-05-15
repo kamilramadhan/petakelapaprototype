@@ -41,10 +41,10 @@ function downloadCSV(filename, rows) {
 window.downloadCSV = downloadCSV;
 
 // ========================= LAYER SIDEBAR =========================
-window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setOpacities, allowedGroups }) {
+window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setOpacities, allowedGroups, onAdjustThreshold, onUpload, thresholds, layerOverrides }) {
   const [openGroup, setOpenGroup] = React.useState({
     "Pertanian": true, "Industri": true,
-    "Lingkungan": false, "Tanah (SoilGrids/HWSD2)": false,
+    "Lingkungan": true, "Tanah (SoilGrids/HWSD2)": false,
     "Infrastruktur (OSM)": false, "Pendukung": false
   });
   const [query, setQuery] = React.useState("");
@@ -61,7 +61,7 @@ window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setO
     <aside className="sidebar">
       <div className="sb-head">
         <div className="sb-title">Layer Manager</div>
-        <button className="icon-btn" title="Sembunyikan">‹</button>
+        <button className="icon-btn" title="Bersihkan semua" onClick={() => setActive(new Set())}>⌫</button>
       </div>
       <div className="sb-search">
         <input placeholder="Cari layer…" value={query} onChange={e => setQuery(e.target.value)} />
@@ -83,21 +83,34 @@ window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setO
                 <div className="sb-items">
                   {items.map(layer => {
                     const on = active.has(layer.id);
+                    const hasThreshold = !!(thresholds && thresholds[layer.id]);
+                    const hasOverride = !!(layerOverrides && layerOverrides[layer.id]);
                     return (
-                      <Fragment key={layer.id}>
+                      <div className="sb-layer-entry" key={layer.id}>
                         <div className="sb-item">
                           <span className="sb-item-ic">{layer.icon}</span>
-                          <span className="sb-item-name">{layer.name}</span>
-                          <label className="toggle">
+                          <span className="sb-item-name" title={layer.name}>{layer.name}</span>
+                          <label className="toggle" title="Aktifkan layer">
                             <input type="checkbox" checked={on} onChange={() => toggleLayer(layer.id)} />
                             <span className="toggle-track" />
                           </label>
-                          <button className="sb-item-info" title="Info layer">i</button>
+                          {hasThreshold && (
+                            <button
+                              className="sb-item-info"
+                              title="Atur threshold / kesesuaian (untuk riset & interseksi)"
+                              onClick={() => onAdjustThreshold && onAdjustThreshold(layer.id)}
+                            >⚙</button>
+                          )}
+                          <button
+                            className={"sb-item-info " + (hasOverride ? "act" : "")}
+                            title={hasOverride ? "Data ter-override · klik untuk kelola" : "Upload data Anda untuk override layer ini"}
+                            onClick={() => onUpload && onUpload(layer.id)}
+                          >⇪</button>
                         </div>
                         {on && (
                           <div className="sb-item">
                             <span></span>
-                            <div className="sb-opacity">
+                            <div className="sb-opacity" style={{ gridColumn: "2 / -1" }}>
                               <input
                                 type="range" min={0} max={100}
                                 value={Math.round((opacities[layer.id] ?? layer.opacity) * 100)}
@@ -107,7 +120,16 @@ window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setO
                             </div>
                           </div>
                         )}
-                      </Fragment>
+                        {on && hasOverride && (
+                          <div className="sb-item">
+                            <span></span>
+                            <div style={{ gridColumn: "2 / -1", fontSize: 10.5, color: "var(--primary-ink)", background: "var(--primary-soft)", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                              <span>⇪</span>
+                              <span style={{ flex: 1 }}>Data override aktif: <b>{layerOverrides[layer.id].fileName}</b></span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -117,136 +139,136 @@ window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setO
         })}
       </div>
       <div className="sb-foot">
-        <span>{active.size} layer aktif</span>
-        <button className="btn-ghost" onClick={() => setActive(new Set())} style={{ padding: "4px 10px", fontSize: 11.5 }}>Bersihkan</button>
+        <span>{active.size} layer aktif · {Object.keys(layerOverrides || {}).length} di-override</span>
       </div>
     </aside>
   );
 };
 
-// ========================= INFO PANEL (floating card, bottom-right) =========================
-window.InfoPanel = function InfoPanel({ kab, port, factory, onClose, onCompare, onSelectFactory, scenarioDelta, role }) {
-  if (!kab && !port && !factory) return null;
-
-  if (factory) {
+// ========================= RIGHT DETAILS PANEL (always visible on /peta) =========================
+window.RightDetailsPanel = function RightDetailsPanel({ kab, activeLayers, thresholds, layerOverrides, scenarioDelta, onCompare, onSelectKab }) {
+  if (!kab) {
+    // Empty state — show overview of how the right panel works + a list of top kabupaten as quick links
+    const top = [...PKD.KABUPATEN].sort((a, b) => b.cias - a.cias).slice(0, 6);
     return (
-      <div className="info-card">
-        <div className="ic-head">
-          <div>
-            <div className="ic-eyebrow">PABRIK · {factory.derivatif.toUpperCase()}</div>
-            <h2 className="ic-title">{factory.name}</h2>
-          </div>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+      <aside className="right-panel">
+        <div className="rp-head">
+          <div className="rp-eyebrow">LAND DETAILS</div>
+          <h2 className="rp-title">Pilih wilayah</h2>
+          <div className="rp-sub">Klik kabupaten di peta untuk melihat CIAS score, sub-layer score, dan logistik.</div>
         </div>
-        <div className="ic-body">
-          <div className="metric-grid">
-            <div className="metric"><div className="m-label">Kapasitas</div><div className="m-value">{factory.capacity.toLocaleString("id-ID")} <span className="m-unit">t/thn</span></div></div>
-            <div className="metric"><div className="m-label">Status</div><div className={"m-value " + (factory.status === "Operasi" ? "good" : "")}>{factory.status}</div></div>
-            <div className="metric"><div className="m-label">Derivatif</div><div className="m-value">{factory.derivatif}</div></div>
+        <div className="rp-body">
+          <div className="rp-empty">
+            <span className="rpe-ic">🌴</span>
+            Klik kabupaten berwarna di peta. Anda akan melihat:
+            <div style={{ textAlign: "left", marginTop: 14, color: "var(--ink)", fontSize: 12.5, lineHeight: 1.8 }}>
+              <div>• <b>CIAS</b> — composite score 0–1</div>
+              <div>• <b>Sub-layer score</b> — apakah tiap layer aktif memenuhi threshold</div>
+              <div>• <b>Logistik</b> — pelabuhan terdekat & LFI</div>
+              <div>• <b>Pabrik</b> & sumber data</div>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (port) {
-    return (
-      <div className="info-card">
-        <div className="ic-head">
-          <div>
-            <div className="ic-eyebrow">PELABUHAN · {port.kelas}</div>
-            <h2 className="ic-title">{port.name}</h2>
+          <div className="rp-section-title">
+            <span>Top Kesesuaian Nasional</span>
+            <span className="count">{top.length}</span>
           </div>
-          <button className="icon-btn" onClick={onClose}>✕</button>
-        </div>
-        <div className="ic-body">
-          <div className="metric-grid">
-            <div className="metric"><div className="m-label">Kapasitas</div><div className="m-value">{port.kapasitas.toLocaleString("id-ID")} <span className="m-unit">TEU/bln</span></div></div>
-            <div className="metric"><div className="m-label">Status</div><div className="m-value">{port.status}</div></div>
-            <div className="metric"><div className="m-label">Koordinat</div><div className="m-value mono">{port.coord[1].toFixed(2)}, {port.coord[0].toFixed(2)}</div></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {top.map((k, i) => (
+              <button key={k.id} onClick={() => onSelectKab(k)}
+                style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", gap: 10, alignItems: "center",
+                         padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--border-soft)",
+                         borderRadius: 6, cursor: "pointer", textAlign: "left", color: "var(--ink)" }}>
+                <span className="rank" style={{ fontFamily: "var(--mono)" }}>#{i + 1}</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 12.5 }}>{k.name}</div>
+                  <div className="muted" style={{ fontSize: 10.5 }}>{k.province}</div>
+                </div>
+                <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: tierColor(k.cias) }}>{k.cias.toFixed(2)}</span>
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      </aside>
     );
   }
 
   const finalCias = Math.min(1, kab.cias + (scenarioDelta || 0));
-  const showCiasDetail = role !== "investor"; // investors see a summary, not the decomp
+  const subLayers = Array.from(activeLayers || []).filter(id => thresholds[id]);
+  // Build sub-layer score rows
+  const rows = subLayers.map(id => {
+    const t = thresholds[id];
+    const v = PKD.layerValue(kab, id);
+    const pass = PKD.passesThreshold(v, t);
+    const layerInfo = PKD.LAYERS.flatMap(g => g.items).find(it => it.id === id);
+    return { id, t, v, pass, name: t.label || layerInfo?.name || id, icon: layerInfo?.icon || "•" };
+  });
+  const passes = rows.filter(r => r.pass).length;
+  const total = rows.length;
+  const subScore = total > 0 ? (passes / total) : 0;
+
+  function fmtRule(t) {
+    if (t.op === "between") return `${t.val}–${t.val2}${t.unit ? " " + t.unit : ""}`;
+    return `${t.op} ${t.val}${t.unit ? " " + t.unit : ""}`;
+  }
+
+  function fmtVal(v, unit) {
+    if (typeof v !== "number") return String(v);
+    let s;
+    if (v >= 10000) s = (v / 1000).toFixed(0) + "K";
+    else if (v >= 100) s = v.toFixed(0);
+    else if (v >= 10)  s = v.toFixed(1);
+    else               s = v.toFixed(2);
+    return s + (unit ? " " + unit : "");
+  }
 
   return (
-    <div className="info-card">
-      <div className="ic-head">
-        <div>
-          <div className="ic-eyebrow">KABUPATEN · {kab.province}</div>
-          <h2 className="ic-title">{kab.name}</h2>
-          <div className="ic-sub">
-            <span className={"tier-badge " + tierClass(finalCias)}>{tierLabel(finalCias)}</span>
-            <span className="muted mono">{(420 + kab.name.length * 18).toLocaleString("id-ID")} km²</span>
-          </div>
+    <aside className="right-panel">
+      <div className="rp-head">
+        <div className="rp-eyebrow">LAND DETAILS · {kab.province}</div>
+        <h2 className="rp-title">{kab.name}</h2>
+        <div className="rp-sub">
+          <span className={"tier-badge " + tierClass(finalCias)}>{tierLabel(finalCias)}</span>
+          <span className="muted mono">{(420 + kab.name.length * 18).toLocaleString("id-ID")} km²</span>
+          {scenarioDelta ? <span className="muted mono" style={{ color: "var(--primary)" }}>Δ +{scenarioDelta.toFixed(2)}</span> : null}
         </div>
-        <button className="icon-btn" onClick={onClose}>✕</button>
       </div>
-      <div className="ic-body">
-        <div className="cias-headline">
-          <div className="cias-val">
-            {finalCias.toFixed(2)}
-            {scenarioDelta ? <span className="cias-delta">+{scenarioDelta.toFixed(2)}</span> : null}
-          </div>
-          <div className="cias-label">Composite Industrial Attractiveness</div>
+      <div className="rp-body">
+        <div className="cias-gauge">
+          <div className="cg-val">{finalCias.toFixed(2)}</div>
+          <div className="cg-label">CIAS Score</div>
+          <div className="cg-sub">Env {kab.envSuit.toFixed(2)} · Proc {kab.procStrength.toFixed(2)} · −Log {kab.logisticsPenalty.toFixed(2)}</div>
         </div>
 
-        {showCiasDetail && (
-          <div className="decomp">
-            <div className="decomp-row">
-              <span>Environmental Suitability</span>
-              <div className="bar"><span style={{ width: (kab.envSuit * 100) + "%", background: "#52A77D" }} /></div>
-              <b>{kab.envSuit.toFixed(2)}</b>
-            </div>
-            <div className="decomp-row">
-              <span>Processing Strength</span>
-              <div className="bar"><span style={{ width: (kab.procStrength * 100) + "%", background: "#F4A261" }} /></div>
-              <b>{kab.procStrength.toFixed(2)}</b>
-            </div>
-            <div className="decomp-row">
-              <span>Logistics Penalty</span>
-              <div className="bar"><span style={{ width: (kab.logisticsPenalty * 100) + "%", background: "#E76F51" }} /></div>
-              <b>−{kab.logisticsPenalty.toFixed(2)}</b>
-            </div>
+        <div className="rp-section-title">
+          <span>Sub-layer Score</span>
+          <span className="count">{passes}/{total} memenuhi · {(subScore * 100).toFixed(0)}%</span>
+        </div>
+        {total === 0 ? (
+          <div className="rp-empty" style={{ padding: "18px 8px", textAlign: "left" }}>
+            <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+              Aktifkan layer (dengan ⚙ threshold) di kiri untuk melihat skor sub-layer di sini.
+            </span>
+          </div>
+        ) : (
+          <div className="sub-list">
+            {rows.map(r => (
+              <div key={r.id} className={"sub-row " + (r.pass ? "pass" : "fail")}>
+                <span className={"sub-dot " + (r.pass ? "pass" : "fail")} />
+                <div>
+                  <div className="sub-name">{r.icon} {r.name}</div>
+                  <div className="sub-rule">aturan: {fmtRule(r.t)}</div>
+                </div>
+                <span className="sub-val">{fmtVal(r.v, r.t.unit)}</span>
+                <span className={"sub-pill " + (r.pass ? "pass" : "fail")}>{r.pass ? "OK" : "—"}</span>
+              </div>
+            ))}
           </div>
         )}
 
-        {role === "investor" && (
-          <div className="metric-grid">
-            <div className="metric"><div className="m-label">Volume Suplai</div><div className="m-value mono">{(kab.production / 1000).toFixed(0)}K <span className="m-unit">t/thn</span></div></div>
-            <div className="metric"><div className="m-label">Pabrik Aktif</div><div className="m-value mono">{kab.factories}</div></div>
-            <div className="metric"><div className="m-label">Jarak Pelabuhan</div><div className="m-value mono">{kab.distToPort} <span className="m-unit">km</span></div></div>
-            <div className="metric"><div className="m-label">LFI</div><div className="m-value good mono">{kab.lfi.toFixed(2)}</div></div>
-          </div>
-        )}
-
-        {role === "peneliti" && (
-          <>
-            <h4 className="ic-h4">Statistik Layer Aktif</h4>
-            <div className="stat-table">
-              <StatRow name="Produksi kelapa" min="12.4K" max="187K" avg={(kab.production / 1000).toFixed(0) + "K"} p25="38K" p75="94K" />
-              <StatRow name="Curah hujan (12mo)" min="1.420" max="2.890" avg={(1500 + (kab.cias * 1200)).toFixed(0)} p25="1.680" p75="2.310" />
-              <StatRow name="pH H₂O 15–30cm" min="4.8" max="6.7" avg={(5 + kab.envSuit * 1.4).toFixed(1)} p25="5.2" p75="6.1" />
-              <StatRow name="SOC 15–30cm" min="6" max="38" avg={(10 + kab.envSuit * 22).toFixed(0)} p25="14" p75="28" />
-            </div>
-          </>
-        )}
-
-        {role === "kementan" && (
-          <>
-            <h4 className="ic-h4">Statistik Ringkas</h4>
-            <div className="stat-table">
-              <StatRow name="Produksi" min="12.4K" max="187K" avg={(kab.production / 1000).toFixed(0) + "K"} p25="38K" p75="94K" />
-              <StatRow name="Curah hujan" min="1.420" max="2.890" avg={(1500 + (kab.cias * 1200)).toFixed(0)} p25="1.680" p75="2.310" />
-            </div>
-          </>
-        )}
-
-        <h4 className="ic-h4">Logistik</h4>
+        <div className="rp-section-title">
+          <span>Logistik</span>
+        </div>
         <div className="logistics-card">
           <div>
             <div className="ic-eyebrow" style={{ color: "var(--ink-2)" }}>Pelabuhan terdekat</div>
@@ -264,31 +286,30 @@ window.InfoPanel = function InfoPanel({ kab, port, factory, onClose, onCompare, 
           if (facs.length === 0) return null;
           return (
             <>
-              <h4 className="ic-h4">Pabrik di Kabupaten ({facs.length})</h4>
+              <div className="rp-section-title">
+                <span>Pabrik di Kabupaten</span>
+                <span className="count">{facs.length}</span>
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {facs.map(f => (
-                  <button key={f.id}
-                    onClick={() => onSelectFactory && onSelectFactory(f)}
-                    style={{ display: "grid", gridTemplateColumns: "12px 1fr auto auto", gap: 10, alignItems: "center",
+                  <div key={f.id}
+                    style={{ display: "grid", gridTemplateColumns: "10px 1fr auto", gap: 10, alignItems: "center",
                              padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--border-soft)",
-                             borderRadius: 6, cursor: "pointer", textAlign: "left", color: "var(--ink)" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--primary)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border-soft)"}>
+                             borderRadius: 6, color: "var(--ink)" }}>
                     <span style={{ width: 10, height: 10, background: PKD.DERIVATIF_COLOR[f.derivatif] || "#F4A261", borderRadius: 2, transform: "rotate(45deg)" }} />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 12 }}>{f.name}</div>
-                      <div className="muted" style={{ fontSize: 10.5 }}>{f.derivatif} · {f.capacity.toLocaleString("id-ID")} t/thn</div>
+                      <div style={{ fontWeight: 600, fontSize: 11.5 }}>{f.name}</div>
+                      <div className="muted" style={{ fontSize: 10 }}>{f.derivatif} · {f.capacity.toLocaleString("id-ID")} t/thn</div>
                     </div>
                     <span className={"check-badge " + (f.status === "Operasi" ? "ok" : "no")} style={{ fontSize: 9.5 }}>{f.status}</span>
-                    <span className="muted" style={{ fontSize: 11 }}>→</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </>
           );
         })()}
 
-        <h4 className="ic-h4">Sumber Data</h4>
+        <div className="rp-section-title"><span>Sumber Data</span></div>
         <ul className="src-list">
           <li><span className="src-tag">SoilGrids</span> 2024-Q4</li>
           <li><span className="src-tag">WorldClim</span> v2.1</li>
@@ -296,15 +317,276 @@ window.InfoPanel = function InfoPanel({ kab, port, factory, onClose, onCompare, 
           <li><span className="src-tag">OSM</span> 2026-04</li>
         </ul>
 
-        <div className="ic-actions">
-          {role === "investor" && <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => onCompare(kab)}>+ Tambah Komparasi</button>}
-          {role !== "investor" && <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => onCompare(kab)}>+ Komparasi</button>}
-          <button className="btn-ghost">⇣ PDF</button>
+        <div className="ic-actions" style={{ marginTop: 18 }}>
+          <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => onCompare(kab)}>+ Tambah ke Komparasi</button>
+          <button className="btn-ghost" title="Ekspor laporan PDF">⇣ PDF</button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+// ========================= THRESHOLD EDITOR MODAL =========================
+window.ThresholdEditorModal = function ThresholdEditorModal({ layerId, threshold, onClose, onSave, onReset }) {
+  const def = PKD.THRESHOLDS[layerId];
+  const layerInfo = PKD.LAYERS.flatMap(g => g.items).find(it => it.id === layerId);
+  const [t, setT] = React.useState({ ...threshold });
+
+  if (!def) return null;
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="mc-head">
+          <div>
+            <div className="mc-eyebrow">SUB-LAYER · ATUR THRESHOLD</div>
+            <h3>{layerInfo?.icon} {def.label}</h3>
+          </div>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="threshold-help">
+          <b>Threshold</b> menentukan apakah suatu wilayah <i>memenuhi</i> kriteria untuk layer ini.
+          Skor sub-layer di panel kanan akan menghitung "OK" jika nilai wilayah memenuhi aturan ini.
+          <br />Default investor: <code>{def.op === "between" ? `${def.val}–${def.val2}` : `${def.op} ${def.val}`}{def.unit ? " " + def.unit : ""}</code>.
+        </div>
+
+        <div className="threshold-row">
+          <span className="tr-label">Operator</span>
+          <select value={t.op} onChange={e => setT({ ...t, op: e.target.value })}>
+            <option value=">">{">"}  (lebih dari)</option>
+            <option value="<">{"<"}  (kurang dari)</option>
+            <option value="between">between (rentang)</option>
+            <option value="=">{"="}  (setara)</option>
+          </select>
+          <span className="tr-unit">{def.unit || "—"}</span>
+        </div>
+        <div className="threshold-row">
+          <span className="tr-label">Nilai{t.op === "between" ? " min" : ""}</span>
+          <input type="number" step="any" value={t.val} onChange={e => setT({ ...t, val: parseFloat(e.target.value) })} />
+          <span className="tr-unit">{def.unit}</span>
+        </div>
+        {t.op === "between" && (
+          <div className="threshold-row">
+            <span className="tr-label">Nilai max</span>
+            <input type="number" step="any" value={t.val2 ?? def.val2 ?? t.val} onChange={e => setT({ ...t, val2: parseFloat(e.target.value) })} />
+            <span className="tr-unit">{def.unit}</span>
+          </div>
+        )}
+
+        <p className="muted" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 14 }}>
+          <b>Tip riset:</b> threshold ini juga digunakan sebagai kondisi awal di mode <b>Interseksi</b>.
+          Gunakan untuk simulasi seperti <i>"tampilkan kabupaten dengan pH 5.5–7 DAN curah hujan &gt; 1500mm"</i>.
+        </p>
+
+        <div className="mc-actions">
+          <button className="btn-ghost" onClick={onReset}>↺ Reset ke Default Investor</button>
+          <button className="btn-ghost" onClick={onClose}>Batal</button>
+          <button className="btn-primary" onClick={() => onSave(t)}>✓ Simpan Threshold</button>
         </div>
       </div>
     </div>
   );
 };
+
+// ========================= UPLOAD OVERRIDE MODAL =========================
+window.UploadOverrideModal = function UploadOverrideModal({ layerId, existingOverride, onClose, onApply, onRemove }) {
+  const def = PKD.THRESHOLDS[layerId];
+  const layerInfo = PKD.LAYERS.flatMap(g => g.items).find(it => it.id === layerId);
+  const [file, setFile] = React.useState(null);
+  const [validation, setValidation] = React.useState(null);
+  const [progress, setProgress] = React.useState(0);
+  const [stage, setStage] = React.useState("idle"); // idle | validating | done
+
+  const formatExpect = {
+    "kebun-kelapa": { fmt: "CSV / GeoJSON",   cols: "kab_id, density (0..1)" },
+    "produksi":     { fmt: "CSV",             cols: "kab_id, production_t_thn" },
+    "factories":    { fmt: "GeoJSON Point",   cols: "lon, lat, name, derivatif, capacity, status" },
+    "pelabuhan":    { fmt: "GeoJSON Point",   cols: "lon, lat, name, kelas, kapasitas" },
+    "elevasi":      { fmt: "GeoTIFF",         cols: "Single band, meter (DEM)" },
+    "curah-hujan":  { fmt: "GeoTIFF",         cols: "Single band, mm/thn" },
+    "suhu":         { fmt: "GeoTIFF",         cols: "Single band, °C" },
+    "ph":           { fmt: "GeoTIFF / CSV",   cols: "Single band; CSV: kab_id, ph_h2o" },
+    "clay":         { fmt: "GeoTIFF",         cols: "Single band, % clay (0..100)" },
+    "sand":         { fmt: "GeoTIFF",         cols: "Single band, % sand (0..100)" },
+    "soc":          { fmt: "GeoTIFF",         cols: "Single band, g/kg" },
+    "n":            { fmt: "GeoTIFF",         cols: "Single band, g/kg" },
+    "cec":          { fmt: "GeoTIFF",         cols: "Single band, cmol(+)/kg" },
+    "coarse":       { fmt: "GeoTIFF",         cols: "Single band, %" },
+    "bulk":         { fmt: "GeoTIFF",         cols: "Single band, kg/dm³" },
+    "roads":        { fmt: "Shapefile / GeoJSON LineString", cols: "geometry, class" },
+    "buildings":    { fmt: "GeoJSON Polygon", cols: "geometry, type" },
+    "waterways":    { fmt: "GeoJSON LineString", cols: "geometry, name" },
+    "landuse":      { fmt: "GeoTIFF / GeoJSON", cols: "class code / polygon class" },
+    "nightlight":   { fmt: "GeoTIFF",         cols: "Single band, nW/cm²/sr" },
+    "batas":        { fmt: "GeoJSON Polygon", cols: "geometry, name, level (province/kab)" },
+  };
+  const expect = formatExpect[layerId] || { fmt: "CSV / GeoJSON / GeoTIFF", cols: "akan dideteksi otomatis" };
+
+  function handleFile(f) {
+    setFile(f);
+    setStage("validating");
+    setProgress(0);
+    setValidation(null);
+    let p = 0;
+    const iv = setInterval(() => {
+      p += 12 + Math.random() * 10;
+      if (p >= 100) {
+        clearInterval(iv);
+        setProgress(100);
+        const isBad = f.name.toLowerCase().includes("bad") || f.size < 100;
+        if (isBad) {
+          setValidation({ ok: false, rows: 0,
+            errors: [
+              "Header tidak sesuai (kolom 'kab_id' tidak ditemukan)",
+              "2 baris memiliki nilai negatif yang tidak valid",
+            ],
+            warnings: ["1 baris bertipe string pada kolom numerik"]
+          });
+        } else {
+          setValidation({ ok: true,
+            rows: Math.floor(40 + Math.random() * 200),
+            errors: [],
+            warnings: ["3 nilai outlier (>3σ) — akan tetap diproses"],
+            preview: [
+              { kab: "Minahasa Utara", value: "1.94" },
+              { kab: "Bolaang Mongondow", value: "2.12" },
+              { kab: "Indragiri Hilir", value: "2.48" },
+            ]
+          });
+        }
+        setStage("done");
+      } else setProgress(p);
+    }, 140);
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card wide" onClick={e => e.stopPropagation()}>
+        <div className="mc-head">
+          <div>
+            <div className="mc-eyebrow">SUB-LAYER · UPLOAD DATA OVERRIDE</div>
+            <h3>{layerInfo?.icon} {def?.label || layerInfo?.name}</h3>
+          </div>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="validation-card">
+          <h5>Format Diharapkan</h5>
+          <ul>
+            <li>Format: <code>{expect.fmt}</code></li>
+            <li>Kolom / band: <code>{expect.cols}</code></li>
+            <li>Sistem koordinat: <code>EPSG:4326 (WGS84)</code></li>
+            <li>Maksimum: <code>50 MB</code></li>
+            {def && <li>Akan divalidasi terhadap range threshold: <code>{def.op === "between" ? `${def.val}–${def.val2}` : `${def.op} ${def.val}`}{def.unit ? " " + def.unit : ""}</code></li>}
+          </ul>
+        </div>
+
+        {existingOverride && stage === "idle" && (
+          <div className="validation-card" style={{ background: "var(--primary-soft)", borderColor: "#B7D5C2" }}>
+            <h5 style={{ color: "var(--primary-ink)" }}>Override aktif</h5>
+            <div style={{ fontSize: 12, color: "var(--primary-ink)" }}>
+              <b>{existingOverride.fileName}</b> · {existingOverride.rows} baris · diunggah {existingOverride.uploadedAt}
+            </div>
+            <button className="btn-ghost" style={{ marginTop: 8 }} onClick={onRemove}>🗑 Hapus override & gunakan data default</button>
+          </div>
+        )}
+
+        {stage === "idle" && (
+          <div className="drop-zone"
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}>
+            <div className="dz-icon">⇪</div>
+            <div className="dz-title">Drag & drop file di sini</div>
+            <div className="dz-sub">atau</div>
+            <label className="btn-primary">
+              Pilih File
+              <input type="file" hidden onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
+            </label>
+            <div className="dz-formats">{expect.fmt}</div>
+          </div>
+        )}
+
+        {stage === "validating" && (
+          <div>
+            <div className="up-file">
+              <span className="up-icon">📄</span>
+              <div>
+                <b>{file?.name}</b>
+                <div className="muted mono">{(file?.size / 1024).toFixed(1)} KB · memvalidasi…</div>
+              </div>
+            </div>
+            <div className="prog-bar"><span style={{ width: progress + "%" }} /></div>
+            <ul className="up-steps">
+              <li className={progress > 25 ? "done" : ""}>✓ Cek format & ukuran</li>
+              <li className={progress > 50 ? "done" : ""}>{progress > 50 ? "✓" : "•"} Cek schema / band</li>
+              <li className={progress > 75 ? "done" : ""}>{progress > 75 ? "✓" : "•"} Cek range nilai & CRS</li>
+              <li className={progress >= 100 ? "done" : ""}>{progress >= 100 ? "✓" : "•"} Build override cache</li>
+            </ul>
+          </div>
+        )}
+
+        {stage === "done" && validation && (
+          <div>
+            <div className="up-file">
+              <span className="up-icon">📄</span>
+              <div>
+                <b>{file?.name}</b>
+                <div className="muted mono">{(file?.size / 1024).toFixed(1)} KB · {validation.rows} baris</div>
+              </div>
+            </div>
+            {validation.ok ? (
+              <>
+                <div className="validation-card" style={{ background: "var(--ok-bg)", borderColor: "#A7E0BD" }}>
+                  <h5 style={{ color: "var(--ok-ink)" }}>✓ Validasi berhasil</h5>
+                  <div style={{ fontSize: 12, color: "var(--ok-ink)" }}>{validation.rows} baris siap di-publish sebagai override layer ini.</div>
+                </div>
+                {validation.preview && (
+                  <>
+                    <h4 className="ic-h4" style={{ margin: "6px 0 8px" }}>Preview Data</h4>
+                    <div className="cols-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                      {validation.preview.map((p, i) => (
+                        <div key={i} className="col-card ok">
+                          <div className="col-name">{p.kab}</div>
+                          <div className="col-sample">{p.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {validation.warnings.length > 0 && (
+                  <div className="validation-card" style={{ background: "var(--warn-bg)", borderColor: "#FCD9A6" }}>
+                    <h5 style={{ color: "var(--warn-ink)" }}>⚠ {validation.warnings.length} peringatan</h5>
+                    <ul>{validation.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="validation-card" style={{ background: "var(--danger-bg)", borderColor: "#FECACA" }}>
+                <h5 style={{ color: "var(--danger-ink)" }}>✕ Validasi gagal</h5>
+                <ul style={{ color: "var(--danger-ink)" }}>{validation.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mc-actions">
+          {existingOverride && <button className="btn-ghost" onClick={onRemove} style={{ marginRight: "auto" }}>🗑 Hapus Override</button>}
+          <button className="btn-ghost" onClick={onClose}>Batal</button>
+          {stage === "done" && validation?.ok && (
+            <button className="btn-primary" onClick={() => onApply({
+              fileName: file.name,
+              size: file.size,
+              rows: validation.rows,
+              uploadedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+            })}>✓ Terapkan Override</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// (Old InfoPanel removed — replaced by RightDetailsPanel for kabupaten; ports/factories handled by InfoFloating in app.jsx)
+
 
 function StatRow({ name, min, max, avg, p25, p75, tier }) {
   return (
@@ -1640,5 +1922,302 @@ window.StatistikPanel = function StatistikPanel({ onClose, onSelect, selected, a
         </div>
       </div>
     </div>
+  );
+};
+
+// ========================= ANALITIK PAGE =========================
+// Full-width dashboard at /analitik — rank, simulasi kebijakan, komparasi, gap.
+
+window.AnalitikPage = function AnalitikPage({ scenarios, simParams, setSimParams, onSaveScenario, scenarioDelta, cmpItems, setCmpItems, thresholds, onSelectKab }) {
+  const [tab, setTab] = React.useState("rank");
+  const [sort, setSort] = React.useState("cias-desc");
+  const [range, setRange] = React.useState([0, 1]);
+  const [derivatifFilter, setDerivatifFilter] = React.useState("semua");
+
+  const sorted = React.useMemo(() => {
+    const arr = [...PKD.KABUPATEN].map(k => ({ ...k, ciasFinal: Math.min(1, k.cias + (scenarioDelta || 0)) }));
+    arr.sort((a, b) => {
+      if (sort === "cias-desc") return b.ciasFinal - a.ciasFinal;
+      if (sort === "cias-asc")  return a.ciasFinal - b.ciasFinal;
+      if (sort === "prod-desc") return b.production - a.production;
+      if (sort === "lfi-desc")  return b.lfi - a.lfi;
+      return 0;
+    });
+    return arr.filter(k => k.ciasFinal >= range[0] && k.ciasFinal <= range[1]);
+  }, [sort, scenarioDelta, range]);
+
+  const totalKab = PKD.KABUPATEN.length;
+  const totalTier1 = PKD.KABUPATEN.filter(k => Math.min(1, k.cias + scenarioDelta) >= 0.8).length;
+  const totalProd = PKD.KABUPATEN.reduce((s, k) => s + k.production, 0);
+  const totalFact = PKD.KABUPATEN.reduce((s, k) => s + k.factories, 0);
+
+  // Sim delta calculation
+  const delta =
+    (simParams.konversi / 100000) * 0.06 +
+    (simParams.kapasitas / 5000) * 0.04 +
+    (simParams.road === "tinggi" ? 0.05 : simParams.road === "sedang" ? 0.025 : 0);
+
+  function addToCompare(k) {
+    if (cmpItems.find(x => x.id === k.id)) return;
+    if (cmpItems.length >= 4) return;
+    setCmpItems([...cmpItems, k]);
+  }
+
+  return (
+    <main className="map-area analitik">
+      <div className="analitik-head">
+        <div>
+          <div className="rp-eyebrow">ANALITIK</div>
+          <h1>Rank, Simulasi & Komparasi</h1>
+          <div className="ah-sub">Fitur penunjang riset & kebijakan — peringkat kabupaten, what-if simulasi, dan komparasi multi-lokasi.</div>
+        </div>
+      </div>
+
+      <div className="an-stats">
+        <div className="an-stat">
+          <div className="as-label">Total Kabupaten</div>
+          <div className="as-val">{totalKab}</div>
+          <div className="as-sub">tertimbang oleh CIAS</div>
+        </div>
+        <div className="an-stat">
+          <div className="as-label">Tier 1 (≥ 0.80)</div>
+          <div className="as-val">{totalTier1}</div>
+          <div className="as-sub">prioritas tertinggi</div>
+        </div>
+        <div className="an-stat">
+          <div className="as-label">Produksi Nasional</div>
+          <div className="as-val">{(totalProd / 1_000_000).toFixed(2)}M</div>
+          <div className="as-sub">ton kelapa / tahun</div>
+        </div>
+        <div className="an-stat">
+          <div className="as-label">Pabrik Tercatat</div>
+          <div className="as-val">{totalFact}</div>
+          <div className="as-sub">{PKD.FACTORIES.length} fasilitas aktif</div>
+        </div>
+      </div>
+
+      <div className="an-tabs">
+        <button className={"an-tab " + (tab === "rank" ? "on" : "")} onClick={() => setTab("rank")}>🏅 Ranking CIAS</button>
+        <button className={"an-tab " + (tab === "simulasi" ? "on" : "")} onClick={() => setTab("simulasi")}>🧪 Simulasi Kebijakan</button>
+        <button className={"an-tab " + (tab === "gap" ? "on" : "")} onClick={() => setTab("gap")}>🏭 Gap Industri</button>
+        <button className={"an-tab " + (tab === "komparasi" ? "on" : "")} onClick={() => setTab("komparasi")}>⚖ Komparasi</button>
+      </div>
+
+      {tab === "rank" && (
+        <div className="an-card">
+          <div className="an-head-row">
+            <div>
+              <h3>Ranking Kabupaten — {sorted.length} hasil</h3>
+              <div className="an-sub">Diurutkan berdasarkan CIAS akhir (termasuk skenario aktif Δ +{scenarioDelta.toFixed(2)})</div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="range-wrap">
+                <span>Skor</span>
+                <input type="range" min={0} max={1} step={0.05} value={range[0]} onChange={e => setRange([parseFloat(e.target.value), range[1]])} />
+                <input type="range" min={0} max={1} step={0.05} value={range[1]} onChange={e => setRange([range[0], parseFloat(e.target.value)])} />
+                <span className="mono">{range[0].toFixed(2)}–{range[1].toFixed(2)}</span>
+              </div>
+              <select value={sort} onChange={e => setSort(e.target.value)}
+                style={{ background: "var(--bg)", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 6, fontSize: 12 }}>
+                <option value="cias-desc">CIAS ↓</option>
+                <option value="cias-asc">CIAS ↑</option>
+                <option value="prod-desc">Produksi ↓</option>
+                <option value="lfi-desc">LFI ↓</option>
+              </select>
+              <button className="btn-ghost" onClick={() => {
+                const rows = [["Rank","Kabupaten","Provinsi","CIAS","Tier","Env","Proc","Logistics_Penalty","Produksi_t_thn","Pabrik","LFI"]];
+                sorted.forEach((k, i) => rows.push([i+1, k.name, k.province, k.ciasFinal.toFixed(3), tierLabel(k.ciasFinal), k.envSuit.toFixed(2), k.procStrength.toFixed(2), k.logisticsPenalty.toFixed(2), k.production, k.factories, k.lfi.toFixed(2)]));
+                downloadCSV(`CIAS_Ranking_${new Date().toISOString().slice(0,10)}.csv`, rows);
+              }}>⇣ Excel</button>
+            </div>
+          </div>
+          <div style={{ maxHeight: 540, overflowY: "auto", border: "1px solid var(--border-soft)", borderRadius: "var(--radius-sm)" }}>
+            <table className="ranking-table" style={{ width: "100%" }}>
+              <thead>
+                <tr>
+                  <th>#</th><th>Kabupaten</th><th>Provinsi</th><th>CIAS</th><th>Tier</th>
+                  <th>Env</th><th>Proc</th><th>−Log</th>
+                  <th>Produksi (t/thn)</th><th>Pabrik</th><th>LFI</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((k, i) => (
+                  <tr key={k.id} onClick={() => onSelectKab(k)}>
+                    <td className="mono">{i + 1}</td>
+                    <td><b>{k.name}</b></td>
+                    <td className="muted">{k.province}</td>
+                    <td><b style={{ color: tierColor(k.ciasFinal) }}>{k.ciasFinal.toFixed(2)}</b></td>
+                    <td><span className={"tier-badge " + tierClass(k.ciasFinal)}>{tierLabel(k.ciasFinal)}</span></td>
+                    <td className="mono">{k.envSuit.toFixed(2)}</td>
+                    <td className="mono">{k.procStrength.toFixed(2)}</td>
+                    <td className="mono">−{k.logisticsPenalty.toFixed(2)}</td>
+                    <td className="mono">{k.production.toLocaleString("id-ID")}</td>
+                    <td className="mono">{k.factories}</td>
+                    <td className="mono">{k.lfi.toFixed(2)}</td>
+                    <td>
+                      <button className="btn-outline-primary" onClick={(e) => { e.stopPropagation(); addToCompare(k); }}>+ Cmp</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === "simulasi" && (
+        <div className="an-grid">
+          <div className="an-card">
+            <h3>Simulasi Kebijakan — What-If</h3>
+            <div className="an-sub">Atur parameter di bawah untuk melihat dampaknya pada CIAS nasional.</div>
+            <div className="sim-controls">
+              <div className="sim-ctrl">
+                <label>Konversi lahan → kebun kelapa</label>
+                <input type="range" min={0} max={200000} step={5000} value={simParams.konversi} onChange={e => setSimParams({ ...simParams, konversi: parseInt(e.target.value) })} />
+                <div className="sim-val"><b>{simParams.konversi.toLocaleString("id-ID")}</b> ha</div>
+              </div>
+              <div className="sim-ctrl">
+                <label>Penambahan kapasitas pelabuhan</label>
+                <input type="range" min={0} max={20000} step={500} value={simParams.kapasitas} onChange={e => setSimParams({ ...simParams, kapasitas: parseInt(e.target.value) })} />
+                <div className="sim-val">+<b>{simParams.kapasitas.toLocaleString("id-ID")}</b> ton/thn</div>
+              </div>
+              <div className="sim-ctrl">
+                <label>Road density improvement</label>
+                <div className="seg">
+                  {["rendah", "sedang", "tinggi"].map(o => (
+                    <button key={o} className={simParams.road === o ? "on" : ""} onClick={() => setSimParams({ ...simParams, road: o })}>{o}</button>
+                  ))}
+                </div>
+              </div>
+              <button className="btn-primary" style={{ alignSelf: "flex-start" }} onClick={() => onSaveScenario(delta)}>💾 Simpan Skenario</button>
+            </div>
+          </div>
+          <div className="an-card" style={{ background: "linear-gradient(135deg, var(--primary-soft), #EEF7F1)" }}>
+            <div className="delta-label">Delta CIAS Nasional</div>
+            <div className="delta-val">+{delta.toFixed(3)}</div>
+            <div className="delta-sub">vs baseline 2026</div>
+            <div className="delta-bars">
+              <div><span>Sulawesi</span><div className="bar"><span style={{ width: Math.min(100, delta * 380) + "%", background: "#2D6A4F" }} /></div></div>
+              <div><span>Sumatera</span><div className="bar"><span style={{ width: Math.min(100, delta * 280) + "%", background: "#52A77D" }} /></div></div>
+              <div><span>Maluku</span><div className="bar"><span style={{ width: Math.min(100, delta * 320) + "%", background: "#F4A261" }} /></div></div>
+              <div><span>Papua</span><div className="bar"><span style={{ width: Math.min(100, delta * 220) + "%", background: "#E76F51" }} /></div></div>
+            </div>
+            <h4 className="ic-h4" style={{ marginTop: 18 }}>Riwayat Skenario</h4>
+            <div style={{ background: "var(--bg)", borderRadius: 8, padding: "10px 14px" }}>
+              {scenarios.map(s => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--border-soft)" }}>
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 12.5 }}>{s.name}</div>
+                    <div className="muted mono" style={{ fontSize: 10.5 }}>{s.ts}</div>
+                  </div>
+                  <div className="mono" style={{ color: "var(--primary)", fontWeight: 600 }}>Δ +{s.delta.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "gap" && (
+        <div className="an-card">
+          <div className="an-head-row">
+            <div>
+              <h3>Gap Produksi vs Kapasitas Pengolahan</h3>
+              <div className="an-sub">Wilayah dengan produksi tinggi tetapi pabrik terbatas → prioritas hilirisasi.</div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <span className="dock-label">Derivatif:</span>
+              <select value={derivatifFilter} onChange={e => setDerivatifFilter(e.target.value)}
+                style={{ background: "var(--bg)", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 6, fontSize: 12 }}>
+                <option value="semua">Semua</option>
+                {PKD.DERIVATIF.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="gap-grid">
+            {[...PKD.KABUPATEN].map(k => ({ ...k, gap: (k.production / 420000) - (k.factories / 10) }))
+              .sort((a, b) => b.gap - a.gap).slice(0, 12).map(k => {
+                const intensity = Math.max(0, Math.min(1, (k.gap + 0.1) * 2));
+                const color = k.gap > 0.5 ? "#C53030" : k.gap > 0.25 ? "#E76F51" : k.gap > 0.05 ? "#F4A261" : "#2D6A4F";
+                return (
+                  <div key={k.id} className="gap-card" onClick={() => onSelectKab(k)}>
+                    <div className="gap-bar"><span style={{ width: (intensity * 100) + "%", background: color }} /></div>
+                    <div className="gap-name">{k.name}</div>
+                    <div className="gap-prov">{k.province}</div>
+                    <div className="gap-stats">
+                      <span><b>{(k.production / 1000).toFixed(0)}K</b> t/thn</span>
+                      <span>·</span>
+                      <span><b>{k.factories}</b> pabrik</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {tab === "komparasi" && (
+        <div className="an-card">
+          <div className="an-head-row">
+            <div>
+              <h3>Komparasi Multi-Lokasi — {cmpItems.length}/4</h3>
+              <div className="an-sub">Tambah kabupaten dari tab Ranking, atau klik wilayah di peta lalu tombol "+ Komparasi".</div>
+            </div>
+            <button className="btn-ghost" disabled={cmpItems.length === 0} onClick={() => setCmpItems([])}>🗑 Kosongkan</button>
+          </div>
+          {cmpItems.length === 0 ? (
+            <div className="rp-empty" style={{ padding: "30px 18px" }}>
+              <span className="rpe-ic">⚖</span>
+              Pilih minimal 2 kabupaten untuk membandingkan.
+            </div>
+          ) : (
+            <>
+              <table className="cmp-table" style={{ width: "100%" }}>
+                <thead>
+                  <tr><th></th><th>CIAS</th><th>LFI</th><th>Produksi</th><th>Pabrik</th><th>Jarak Pel.</th><th>Env</th><th>Proc</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {cmpItems.map((k, i) => {
+                    const colors = ["#2D6A4F", "#F4A261", "#3B82F6", "#9B7BD1"];
+                    return (
+                      <tr key={k.id}>
+                        <td><span className="cmp-dot" style={{ background: colors[i] }} /><b>{k.name}</b><div className="muted">{k.province}</div></td>
+                        <td><b style={{ color: tierColor(k.cias) }}>{k.cias.toFixed(2)}</b></td>
+                        <td className="mono">{k.lfi.toFixed(2)}</td>
+                        <td className="mono">{k.production.toLocaleString("id-ID")}</td>
+                        <td className="mono">{k.factories}</td>
+                        <td className="mono">{k.distToPort} km</td>
+                        <td className="mono">{k.envSuit.toFixed(2)}</td>
+                        <td className="mono">{k.procStrength.toFixed(2)}</td>
+                        <td><button className="icon-btn" onClick={() => setCmpItems(cmpItems.filter(x => x.id !== k.id))}>✕</button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {cmpItems.length >= 2 && (
+                <div className="cmp-radar-wrap" style={{ marginTop: 20 }}>
+                  <h4 className="cmp-h4">Radar Multidimensi</h4>
+                  <div className="cmp-radar">
+                    <RadarChart size={320} items={cmpItems.map((k, i) => ({
+                      name: k.name, color: ["#2D6A4F", "#F4A261", "#3B82F6", "#9B7BD1"][i],
+                      values: { cias: k.cias, envSuit: k.envSuit, procStrength: k.procStrength, logistics: 1 - k.logisticsPenalty, production: Math.min(1, k.production / 400000), lfi: k.lfi }
+                    }))} />
+                    <div className="cmp-legend">
+                      {cmpItems.map((k, i) => (
+                        <div key={k.id} className="cmp-legend-row">
+                          <span className="cmp-dot" style={{ background: ["#2D6A4F", "#F4A261", "#3B82F6", "#9B7BD1"][i] }} />
+                          <span>{k.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </main>
   );
 };

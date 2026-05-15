@@ -1,26 +1,30 @@
-// Auth screens — Login + Register with role-based account.
-// Persists user to localStorage. Role selected at registration is permanent.
+// Auth screens — Login + Register, single unified user role.
+// Persists user to localStorage.
 
 const { useState, useEffect } = React;
 
-const ROLE_INFO = {
-  kementan: { label: "Kementan", full: "Staf Kementerian Pertanian", className: "kementan" },
-  investor: { label: "Investor", full: "Investor / Pengembang Bisnis", className: "investor" },
-  peneliti: { label: "Peneliti", full: "Peneliti / Akademisi", className: "peneliti" },
-};
-window.ROLE_INFO = ROLE_INFO;
+// Single default role for all registered users.
+const DEFAULT_ROLE = "user";
 
-// Mock seed accounts
+// Mock seed accounts — single demo account
 const DEMO_ACCOUNTS = [
-  { email: "kementan@demo.id", password: "password123", name: "Bp. A. Pratama",  instansi: "Kementerian Pertanian RI", role: "kementan" },
-  { email: "investor@demo.id", password: "password123", name: "Ibu S. Halim",    instansi: "PT Nusantara Coco Ventures", role: "investor" },
-  { email: "peneliti@demo.id", password: "password123", name: "Dr. R. Wijaya",   instansi: "Institut Pertanian Bogor",   role: "peneliti" },
+  { email: "demo@petakelapa.id", password: "password123", name: "Sdri. N. Anggraini",  instansi: "PT Nusantara Coco Ventures", role: DEFAULT_ROLE },
 ];
 
 function getAccounts() {
   try {
     const raw = localStorage.getItem("pkd_accounts");
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const accs = JSON.parse(raw);
+      // Ensure the current demo account is always present (handles upgrade from old seeds)
+      const hasDemo = accs.some(a => a.email.toLowerCase() === DEMO_ACCOUNTS[0].email.toLowerCase());
+      if (!hasDemo) {
+        const merged = accs.concat(DEMO_ACCOUNTS);
+        localStorage.setItem("pkd_accounts", JSON.stringify(merged));
+        return merged;
+      }
+      return accs;
+    }
   } catch (e) {}
   localStorage.setItem("pkd_accounts", JSON.stringify(DEMO_ACCOUNTS));
   return DEMO_ACCOUNTS;
@@ -36,7 +40,6 @@ window.AuthAPI = {
       const raw = localStorage.getItem("pkd_session");
       if (!raw) return null;
       const data = JSON.parse(raw);
-      // Check expiry — 7 days from login
       if (data.expiresAt && Date.now() > data.expiresAt) {
         localStorage.removeItem("pkd_session");
         sessionStorage.setItem("pkd_session_expired", "1");
@@ -55,7 +58,6 @@ window.AuthAPI = {
       const raw = localStorage.getItem("pkd_access_log");
       const log = raw ? JSON.parse(raw) : [];
       log.unshift({ ...entry, ts: new Date().toISOString().slice(0, 16).replace("T", " ") });
-      // Cap at 100 entries
       localStorage.setItem("pkd_access_log", JSON.stringify(log.slice(0, 100)));
     } catch (e) {}
   },
@@ -70,9 +72,9 @@ window.AuthAPI = {
     const u = accounts.find(a => a.email.toLowerCase() === email.toLowerCase() && a.password === password);
     if (!u) return { ok: false, error: "Email atau password salah." };
     const expiresAt = Date.now() + this.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-    const session = { name: u.name, email: u.email, instansi: u.instansi, role: u.role, expiresAt };
+    const session = { name: u.name, email: u.email, instansi: u.instansi, role: u.role || DEFAULT_ROLE, expiresAt };
     localStorage.setItem("pkd_session", JSON.stringify(session));
-    this.appendAccessLog({ event: "LOGIN", user: u.name, email: u.email, role: u.role });
+    this.appendAccessLog({ event: "LOGIN", user: u.name, email: u.email, role: session.role });
     return { ok: true, user: session };
   },
   register(payload) {
@@ -80,18 +82,17 @@ window.AuthAPI = {
     if (accounts.find(a => a.email.toLowerCase() === payload.email.toLowerCase())) {
       return { ok: false, error: "Email sudah terdaftar." };
     }
-    const newAcc = { ...payload };
+    const newAcc = { ...payload, role: DEFAULT_ROLE };
     accounts.push(newAcc);
     saveAccounts(accounts);
     this.appendAccessLog({ event: "REGISTER", user: newAcc.name, email: newAcc.email, role: newAcc.role });
     return { ok: true, user: newAcc };
   },
   finalizeRegistration(payload) {
-    // Called after the user clicks "Lanjut ke Login" / verification step.
     const expiresAt = Date.now() + this.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-    const session = { name: payload.name, email: payload.email, instansi: payload.instansi, role: payload.role, expiresAt };
+    const session = { name: payload.name, email: payload.email, instansi: payload.instansi, role: DEFAULT_ROLE, expiresAt };
     localStorage.setItem("pkd_session", JSON.stringify(session));
-    this.appendAccessLog({ event: "VERIFIED", user: payload.name, email: payload.email, role: payload.role });
+    this.appendAccessLog({ event: "VERIFIED", user: payload.name, email: payload.email, role: DEFAULT_ROLE });
     return { ok: true, user: session };
   },
   logout() {
@@ -138,11 +139,11 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
         setError(r.error);
         setLoading(false);
       }
-    }, 800);
+    }, 600);
   }
 
-  function useDemo(em) {
-    setEmail(em);
+  function useDemo() {
+    setEmail("demo@petakelapa.id");
     setPassword("password123");
   }
 
@@ -172,16 +173,7 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
         <div className="demo-hint">
           <b>Coba demo:</b>
           <div className="demo-row" style={{ marginTop: 6 }}>
-            <span className="role-pill kementan">Kementan</span>
-            <button className="use-demo" onClick={() => useDemo("kementan@demo.id")}>kementan@demo.id / password123</button>
-          </div>
-          <div className="demo-row" style={{ marginTop: 4 }}>
-            <span className="role-pill investor">Investor</span>
-            <button className="use-demo" onClick={() => useDemo("investor@demo.id")}>investor@demo.id / password123</button>
-          </div>
-          <div className="demo-row" style={{ marginTop: 4 }}>
-            <span className="role-pill peneliti">Peneliti</span>
-            <button className="use-demo" onClick={() => useDemo("peneliti@demo.id")}>peneliti@demo.id / password123</button>
+            <button className="use-demo" onClick={useDemo}>demo@petakelapa.id / password123</button>
           </div>
         </div>
 
@@ -196,11 +188,11 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
 
 window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
   const [form, setForm] = useState({
-    name: "", instansi: "", email: "", password: "", confirm: "", role: "investor"
+    name: "", instansi: "", email: "", password: "", confirm: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [verifyStep, setVerifyStep] = useState(false); // email confirmation screen
+  const [verifyStep, setVerifyStep] = useState(false);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -213,24 +205,23 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
     setTimeout(() => {
       const r = AuthAPI.register({
         name: form.name, instansi: form.instansi, email: form.email,
-        password: form.password, role: form.role
+        password: form.password
       });
       if (r.ok) {
         setLoading(false);
         setVerifyStep(true);
       } else { setError(r.error); setLoading(false); }
-    }, 800);
+    }, 600);
   }
 
   function finishVerification() {
     const r = AuthAPI.finalizeRegistration({
-      name: form.name, instansi: form.instansi, email: form.email, role: form.role
+      name: form.name, instansi: form.instansi, email: form.email
     });
     if (r.ok) onAuthed(r.user);
   }
 
   if (verifyStep) {
-    const role = ROLE_INFO[form.role];
     return (
       <div className="auth-stage">
         <div className="auth-card">
@@ -249,8 +240,8 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
               <span>Instansi</span><b style={{ color: "var(--ink)" }}>{form.instansi}</b>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
-              <span>Peran</span><span className={"role-pill " + role.className}>{role.label}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+              <span>Email</span><b style={{ color: "var(--ink)" }}>{form.email}</b>
             </div>
           </div>
           <button className="auth-submit" onClick={finishVerification}>
@@ -273,7 +264,7 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
       <div className="auth-card wide">
         <BrandHeader />
         <h1 className="auth-h1">Buat akun baru</h1>
-        <p className="auth-sub">Role akun melekat permanen. Pilih sesuai posisi Anda.</p>
+        <p className="auth-sub">Akses peta kesesuaian wilayah & analitik industri kelapa Indonesia.</p>
 
         {error && <div className="auth-error">⚠ {error}</div>}
 
@@ -299,14 +290,6 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
               <label>Konfirmasi Password</label>
               <input type="password" required value={form.confirm} onChange={e => set("confirm", e.target.value)} placeholder="Ulangi password" />
             </div>
-          </div>
-          <div className="auth-field">
-            <label>Daftar sebagai</label>
-            <select value={form.role} onChange={e => set("role", e.target.value)}>
-              <option value="kementan">Staf Kementerian Pertanian</option>
-              <option value="investor">Investor / Pengembang Bisnis</option>
-              <option value="peneliti">Peneliti / Akademisi</option>
-            </select>
           </div>
           <button className="auth-submit" type="submit" disabled={loading}>
             {loading ? <><span className="spinner" /> Memproses…</> : "Buat Akun"}
