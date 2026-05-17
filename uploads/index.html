@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>PetaKelapa.id — Platform Geospasial Industri Kelapa Indonesia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Platform geospasial untuk pemetaan, analitik, dan pengambilan keputusan berbasis data industri kelapa Indonesia." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+:root {
+  --bg:           #FFFFFF;
+  --surface:      #F8F9FA;
+  --surface-2:    #F3F4F6;
+  --border:       #E9ECEF;
+  --primary:      #2D6A4F;
+  --primary-soft: #D8E9DF;
+  --primary-ink:  #1B4332;
+  --accent:       #F4A261;
+  --accent-soft:  #FCE4C8;
+  --ink:          #1A1A2E;
+  --ink-2:        #6B7280;
+  --ink-3:        #9CA3AF;
+  --ink-4:        #D1D5DB;
+  --ok-bg:        #D1FAE5; --ok-ink:   #065F46;
+  --warn-bg:      #FEF3C7; --warn-ink: #92400E;
+  --info-bg:      #DBEAFE; --info-ink: #1E40AF;
+  --shadow-card:  0 4px 16px rgba(0,0,0,0.06);
+  --shadow-soft:  0 1px 3px rgba(0,0,0,0.04);
+  --shadow-lg:    0 16px 40px -8px rgba(0,0,0,0.15);
+  --radius:       12px;
+  --radius-sm:    8px;
+  --radius-pill:  999px;
+  --font:         "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono:         "JetBrains Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NAVBAR ── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px;
+  height: 64px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-brand-name { font-weight: 700; font-size: 17px; color: var(--ink); letter-spacing: -0.01em; }
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links a {
+  color: var(--ink-2); text-decoration: none;
+  font-size: 14px; font-weight: 500;
+  transition: color 120ms;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-cta { display: flex; align-items: center; gap: 10px; }
+.btn-ghost-sm {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--ink); padding: 8px 18px;
+  border-radius: var(--radius-sm); font-size: 13.5px;
+  font-weight: 500; cursor: pointer; text-decoration: none;
+  transition: background 100ms, border-color 100ms;
+}
+.btn-ghost-sm:hover { background: var(--surface); border-color: var(--ink-4); }
+.btn-primary-sm {
+  background: var(--primary); color: white;
+  border: 0; padding: 8px 20px;
+  border-radius: var(--radius-sm); font-size: 13.5px;
+  font-weight: 600; cursor: pointer; text-decoration: none;
+  transition: filter 120ms, transform 80ms;
+}
+.btn-primary-sm:hover { filter: brightness(1.08); }
+.btn-primary-sm:active { transform: translateY(1px); }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 100px 40px 80px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(45,106,79,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(244,162,97,0.06) 0%, transparent 50%),
+    var(--bg);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--primary-soft); color: var(--primary-ink);
+  border: 1px solid #B7D5C2;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px; font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 26px;
+}
+.hero-badge-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgba(45,106,79,0.2);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(45,106,79,0.2); }
+  50%       { box-shadow: 0 0 0 6px rgba(45,106,79,0.1); }
+}
+.hero h1 {
+  font-size: clamp(38px, 5vw, 64px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 22px;
+  color: var(--ink);
+}
+.hero h1 span { color: var(--primary); }
+.hero-sub {
+  max-width: 600px; margin: 0 auto 38px;
+  font-size: 18px; color: var(--ink-2); line-height: 1.65;
+}
+.hero-actions {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-primary-lg {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--primary); color: white;
+  border: 0; padding: 14px 30px;
+  border-radius: var(--radius-sm); font-size: 15px;
+  font-weight: 600; text-decoration: none;
+  transition: filter 120ms, transform 80ms;
+  box-shadow: 0 4px 20px rgba(45,106,79,0.30);
+}
+.btn-primary-lg:hover { filter: brightness(1.08); }
+.btn-primary-lg:active { transform: translateY(1px); }
+.btn-ghost-lg {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--border); padding: 14px 28px;
+  border-radius: var(--radius-sm); font-size: 15px;
+  font-weight: 500; text-decoration: none;
+  transition: background 100ms, border-color 100ms;
+}
+.btn-ghost-lg:hover { background: var(--surface); border-color: var(--ink-4); }
+
+/* Hero stats strip */
+.hero-stats {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-top: 60px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 680px; margin: 60px auto 0;
+}
+.hs-item {
+  flex: 1;
+  padding: 18px 24px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.hs-item:last-child { border-right: 0; }
+.hs-val {
+  font-size: 26px; font-weight: 800;
+  color: var(--primary); letter-spacing: -0.02em;
+}
+.hs-label { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+/* ── APP PREVIEW ── */
+.preview-wrap {
+  padding: 60px 40px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.preview-inner {
+  max-width: 1100px; margin: 0 auto;
+  position: relative;
+}
+.preview-label {
+  text-align: center;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 28px;
+}
+.preview-frame {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+.pf-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.pf-dot { width: 10px; height: 10px; border-radius: 50%; }
+.pf-dot:nth-child(1) { background: #FF5F57; }
+.pf-dot:nth-child(2) { background: #FEBC2E; }
+.pf-dot:nth-child(3) { background: #28C840; }
+.pf-url {
+  flex: 1; height: 26px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.pf-body {
+  display: grid;
+  grid-template-columns: 64px 280px 1fr 340px;
+  height: 420px;
+}
+.pf-rail {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 14px 0; gap: 10px;
+}
+.pf-rail-brand {
+  width: 36px; height: 36px;
+  background: var(--primary);
+  border-radius: 9px;
+  display: grid; place-items: center;
+  color: white; font-size: 16px;
+  margin-bottom: 6px;
+}
+.pf-rail-btn {
+  width: 40px; height: 40px;
+  border-radius: 9px;
+  background: transparent;
+  display: grid; place-items: center;
+  font-size: 17px; color: var(--ink-3);
+}
+.pf-rail-btn.on {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.pf-sidebar {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 14px;
+  overflow: hidden;
+}
+.pf-sb-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.pf-layer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  font-size: 12px; color: var(--ink-2);
+}
+.pf-layer.on { background: var(--primary-soft); color: var(--primary-ink); }
+.pf-layer-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pf-toggle { margin-left: auto; width: 28px; height: 16px; background: var(--primary); border-radius: 999px; position: relative; }
+.pf-toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; }
+.pf-toggle.off { background: var(--ink-4); }
+.pf-toggle.off::after { right: auto; left: 2px; }
+.pf-map {
+  background: linear-gradient(160deg, #E8EDE3 0%, #D1E0D6 100%);
+  position: relative; overflow: hidden;
+}
+.pf-map-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.pf-map-blob {
+  position: absolute;
+  border-radius: 60% 40% 50% 60%;
+  opacity: 0.7;
+}
+.pf-hud {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 10px; font-family: var(--mono);
+  color: var(--ink-2);
+}
+.pf-pill {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  display: flex; gap: 2px;
+}
+.pf-pill-tab { padding: 5px 14px; border-radius: 999px; font-size: 10px; color: var(--ink-2); }
+.pf-pill-tab.on { background: var(--primary); color: white; font-weight: 600; }
+.pf-right {
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  overflow: hidden;
+}
+.pf-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--primary); }
+.pf-rp-title { font-size: 16px; font-weight: 700; margin: 4px 0 2px; }
+.pf-rp-sub { font-size: 10px; color: var(--ink-2); margin-bottom: 12px; }
+.pf-gauge {
+  background: linear-gradient(135deg, #F0F7F3, #E5F1EA);
+  border: 1px solid #C8E0D2;
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  text-align: center; margin-bottom: 12px;
+}
+.pf-gauge-val { font-size: 38px; font-weight: 800; color: var(--primary); line-height: 1; }
+.pf-gauge-label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
+.pf-mini-row {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pf-mini-row:last-child { border-bottom: 0; }
+.pf-mini-row b { font-family: var(--mono); color: var(--primary); }
+
+/* ── FEATURES ── */
+.features {
+  padding: 90px 40px;
+  background: var(--bg);
+}
+.section-label {
+  text-align: center;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--primary); margin-bottom: 12px;
+}
+.section-title {
+  text-align: center;
+  font-size: clamp(28px, 3.5vw, 42px);
+  font-weight: 700; letter-spacing: -0.02em;
+  margin-bottom: 14px; color: var(--ink);
+}
+.section-sub {
+  text-align: center;
+  font-size: 16px; color: var(--ink-2);
+  max-width: 520px; margin: 0 auto 60px;
+  line-height: 1.65;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1100px; margin: 0 auto;
+}
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 26px;
+  transition: transform 150ms, box-shadow 150ms;
+}
+.feat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); }
+.feat-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+.feat-icon.green { background: var(--primary-soft); }
+.feat-icon.amber { background: var(--accent-soft); }
+.feat-icon.blue  { background: var(--info-bg); }
+.feat-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.feat-desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+
+/* ── ROLES ── */
+.roles {
+  padding: 90px 40px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 900px; margin: 0 auto;
+}
+.role-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px 24px;
+}
+.role-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  padding: 4px 12px; border-radius: var(--radius-pill);
+  letter-spacing: 0.02em; margin-bottom: 14px;
+}
+.role-pill.kementan { background: var(--ok-bg);   color: var(--ok-ink); }
+.role-pill.investor { background: var(--warn-bg); color: var(--warn-ink); }
+.role-pill.peneliti { background: var(--info-bg); color: var(--info-ink); }
+.role-name { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.role-desc { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.role-list {
+  list-style: none; margin-top: 14px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.role-list li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.role-list li::before {
+  content: "✓";
+  color: var(--primary); font-weight: 700;
+  font-size: 12px; flex-shrink: 0; margin-top: 1px;
+}
+
+/* ── DATA LAYERS ── */
+.layers {
+  padding: 90px 40px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.layers-inner { max-width: 1100px; margin: 0 auto; }
+.layers-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-top: 0;
+}
+.layer-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+}
+.layer-chip .lc-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px; flex-shrink: 0;
+}
+
+/* ── CTA ── */
+.cta-section {
+  padding: 100px 40px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(45,106,79,0.1) 0%, transparent 60%),
+    var(--primary-ink);
+  color: white;
+}
+.cta-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 5px 14px; border-radius: var(--radius-pill);
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em;
+  margin-bottom: 24px;
+}
+.cta-section h2 {
+  font-size: clamp(30px, 4vw, 50px);
+  font-weight: 800; letter-spacing: -0.02em;
+  margin-bottom: 16px; line-height: 1.15;
+}
+.cta-section p { font-size: 17px; opacity: 0.75; margin-bottom: 38px; max-width: 480px; margin-left: auto; margin-right: auto; }
+.cta-section .btn-white {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: white; color: var(--primary-ink);
+  border: 0; padding: 14px 32px;
+  border-radius: var(--radius-sm); font-size: 15px;
+  font-weight: 700; text-decoration: none;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  transition: filter 120ms, transform 80ms;
+}
+.cta-section .btn-white:hover { filter: brightness(0.95); }
+.cta-section .btn-white:active { transform: translateY(1px); }
+
+/* ── FOOTER ── */
+.footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-brand { display: flex; align-items: center; gap: 10px; }
+.footer-brand-name { font-weight: 700; font-size: 15px; }
+.footer-copy { font-size: 12.5px; color: var(--ink-3); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 12.5px; color: var(--ink-2); text-decoration: none; }
+.footer-links a:hover { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .nav-links { display: none; }
+  .pf-body { grid-template-columns: 1fr; height: auto; }
+  .pf-sidebar, .pf-right, .pf-rail { display: none; }
+  .pf-map { height: 260px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .roles-grid { grid-template-columns: 1fr; }
+  .layers-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <a class="nav-brand" href="#">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="#2D6A4F"/>
+      <path d="M16 6C16 6 9 10 9 18C9 22.4 12.1 26 16 26C19.9 26 23 22.4 23 18C23 10 16 6 16 6Z" fill="white" opacity="0.9"/>
+      <path d="M16 12C16 12 12 15 12 19C12 21.2 13.8 23 16 23C18.2 23 20 21.2 20 19C20 15 16 12 16 12Z" fill="#2D6A4F"/>
+      <path d="M16 26V20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-brand-name">PetaKelapa.id</span>
+  </a>
+  <div class="nav-links">
+    <a href="#fitur">Fitur</a>
+    <a href="#pengguna">Pengguna</a>
+    <a href="#data">Data Layer</a>
+  </div>
+  <div class="nav-cta">
+    <a class="btn-ghost-sm" href="PetaKelapa.html">Masuk</a>
+    <a class="btn-primary-sm" href="PetaKelapa.html">Mulai Sekarang</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Platform Geospasial Industri Kelapa Indonesia
+  </div>
+  <h1>Peta Cerdas untuk<br><span>Industri Kelapa</span><br>Nasional</h1>
+  <p class="hero-sub">
+    Platform analitik geospasial berbasis data untuk pemetaan lahan, evaluasi kesesuaian, rantai pasok, dan pengambilan keputusan investasi kelapa Indonesia.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary-lg" href="PetaKelapa.html">
+      &#127758; Buka Platform
+    </a>
+    <a class="btn-ghost-lg" href="#fitur">
+      Pelajari Fitur &rarr;
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hs-item">
+      <div class="hs-val">514+</div>
+      <div class="hs-label">Kab/Kota dipetakan</div>
+    </div>
+    <div class="hs-item">
+      <div class="hs-val">3.61M</div>
+      <div class="hs-label">ha lahan kelapa</div>
+    </div>
+    <div class="hs-item">
+      <div class="hs-val">18+</div>
+      <div class="hs-label">Layer data aktif</div>
+    </div>
+  </div>
+</section>
+
+<!-- APP PREVIEW -->
+<div class="preview-wrap">
+  <div class="preview-inner">
+    <div class="preview-label">Tampilan Aplikasi</div>
+    <div class="preview-frame">
+      <div class="pf-bar">
+        <div class="pf-dot"></div>
+        <div class="pf-dot"></div>
+        <div class="pf-dot"></div>
+        <div class="pf-url">petakelapa.id/peta</div>
+      </div>
+      <div class="pf-body">
+        <!-- Rail -->
+        <div class="pf-rail">
+          <div class="pf-rail-brand">&#127810;</div>
+          <div class="pf-rail-btn on">&#128506;</div>
+          <div class="pf-rail-btn">&#128202;</div>
+          <div class="pf-rail-btn">&#128196;</div>
+          <div class="pf-rail-btn">&#9881;</div>
+        </div>
+        <!-- Sidebar -->
+        <div class="pf-sidebar">
+          <div class="pf-sb-title">Layer Peta</div>
+          <div class="pf-layer on">
+            <div class="pf-layer-dot" style="background:#2D6A4F"></div>
+            Kesesuaian Lahan
+            <div class="pf-toggle" style="margin-left:auto"></div>
+          </div>
+          <div class="pf-layer">
+            <div class="pf-layer-dot" style="background:#F4A261"></div>
+            Produksi Kelapa
+            <div class="pf-toggle off" style="margin-left:auto"></div>
+          </div>
+          <div class="pf-layer">
+            <div class="pf-layer-dot" style="background:#4A90D9"></div>
+            Pelabuhan Ekspor
+            <div class="pf-toggle off" style="margin-left:auto"></div>
+          </div>
+          <div class="pf-layer">
+            <div class="pf-layer-dot" style="background:#E76F51"></div>
+            Pabrik Pengolahan
+            <div class="pf-toggle off" style="margin-left:auto"></div>
+          </div>
+          <div class="pf-layer">
+            <div class="pf-layer-dot" style="background:#9C6ADE"></div>
+            Zona Risiko Bencana
+            <div class="pf-toggle off" style="margin-left:auto"></div>
+          </div>
+        </div>
+        <!-- Map -->
+        <div class="pf-map">
+          <div class="pf-map-grid"></div>
+          <div class="pf-map-blob" style="width:180px;height:130px;background:#52A77D;top:40px;left:60px;"></div>
+          <div class="pf-map-blob" style="width:120px;height:100px;background:#74C69D;top:100px;left:180px;border-radius:50% 60% 40% 55%;"></div>
+          <div class="pf-map-blob" style="width:90px;height:80px;background:#95D5B2;top:60px;left:260px;border-radius:55% 45% 60% 40%;"></div>
+          <div class="pf-map-blob" style="width:60px;height:55px;background:#B7E4C7;top:150px;left:100px;border-radius:45% 55% 50% 50%;"></div>
+          <div class="pf-hud">&#128205; 1.23°S, 116.85°E &nbsp;|&nbsp; zoom 7</div>
+          <div class="pf-pill">
+            <div class="pf-pill-tab on">2D Peta</div>
+            <div class="pf-pill-tab">3D Globe</div>
+            <div class="pf-pill-tab">Analitik</div>
+          </div>
+        </div>
+        <!-- Right panel -->
+        <div class="pf-right">
+          <div class="pf-eyebrow">Kabupaten Terpilih</div>
+          <div class="pf-rp-title">Kab. Indragiri Hilir</div>
+          <div class="pf-rp-sub">Riau &middot; Sumatera</div>
+          <div class="pf-gauge">
+            <div class="pf-gauge-val">82</div>
+            <div class="pf-gauge-label">Skor CIAS</div>
+          </div>
+          <div class="pf-mini-row"><span>Luas Lahan</span><b>320.4 rb ha</b></div>
+          <div class="pf-mini-row"><span>Produksi</span><b>1.2 jt ton/th</b></div>
+          <div class="pf-mini-row"><span>Kesesuaian</span><b>Sangat Sesuai</b></div>
+          <div class="pf-mini-row"><span>Pelabuhan</span><b>3 aktif</b></div>
+          <div class="pf-mini-row"><span>LFI Score</span><b>76 / 100</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="fitur">
+  <div class="section-label">Fitur Utama</div>
+  <div class="section-title">Semua yang Anda butuhkan<br>dalam satu platform</div>
+  <p class="section-sub">Dari pemetaan kesesuaian lahan hingga simulasi investasi — analisis data kelapa Indonesia secara komprehensif.</p>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon green">&#128506;</div>
+      <div class="feat-title">Peta Kesesuaian Lahan</div>
+      <p class="feat-desc">Visualisasi interaktif kesesuaian lahan kelapa berdasarkan 18+ sub-layer: curah hujan, jenis tanah, topografi, dan lebih banyak lagi.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon amber">&#128202;</div>
+      <div class="feat-title">Skor CIAS</div>
+      <p class="feat-desc">Coconut Investment Attractiveness Score — indeks komposit yang mengukur daya tarik investasi per kabupaten secara terstandarisasi.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon blue">&#9881;</div>
+      <div class="feat-title">Simulasi Skenario</div>
+      <p class="feat-desc">Simulasikan dampak peningkatan produktivitas, perubahan harga, atau perluasan lahan terhadap nilai ekonomi wilayah.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon green">&#128196;</div>
+      <div class="feat-title">Interseksi Multi-Layer</div>
+      <p class="feat-desc">Temukan kabupaten yang memenuhi kriteria kombinasi: kesesuaian lahan tinggi, infrastruktur memadai, dan risiko rendah sekaligus.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon amber">&#127968;</div>
+      <div class="feat-title">Rantai Pasok Kelapa</div>
+      <p class="feat-desc">Visualisasi alur rantai pasok dari kebun ke pabrik hingga pelabuhan ekspor, lengkap dengan metrik logistik per wilayah.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon blue">&#128101;</div>
+      <div class="feat-title">Komparasi Wilayah</div>
+      <p class="feat-desc">Bandingkan hingga 3 kabupaten secara side-by-side dengan radar chart dimensi iklim, tanah, infrastruktur, dan ekonomi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section class="roles" id="pengguna">
+  <div class="section-label">Pengguna</div>
+  <div class="section-title">Dirancang untuk setiap peran</div>
+  <p class="section-sub">Akses dan fitur disesuaikan berdasarkan profil pengguna yang terdaftar.</p>
+
+  <div class="roles-grid">
+    <div class="role-card">
+      <div class="role-pill kementan">&#127975; Pemerintah</div>
+      <div class="role-name">Kementan / Pemda</div>
+      <p class="role-desc">Akses lengkap data kesesuaian lahan, upload dataset resmi, dan ekspor laporan kebijakan.</p>
+      <ul class="role-list">
+        <li>Upload & kelola dataset layer</li>
+        <li>Ekspor laporan kecamatan/kabupaten</li>
+        <li>Penetapan threshold kesesuaian</li>
+        <li>Akses data peneliti terverifikasi</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <div class="role-pill investor">&#128176; Investor</div>
+      <div class="role-name">Investor & Swasta</div>
+      <p class="role-desc">Analisis daya tarik investasi, simulasi skenario, dan identifikasi lokasi prospektif.</p>
+      <ul class="role-list">
+        <li>Skor CIAS per kabupaten</li>
+        <li>Simulasi ROI dan skenario harga</li>
+        <li>Ranking wilayah prioritas</li>
+        <li>Laporan due diligence lokasi</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <div class="role-pill peneliti">&#128300; Peneliti</div>
+      <div class="role-name">Peneliti & Akademisi</div>
+      <p class="role-desc">Kustomisasi formula CIAS, upload dataset riset, dan analisis geospasial mendalam.</p>
+      <ul class="role-list">
+        <li>Formula builder CIAS kustom</li>
+        <li>Upload dataset penelitian</li>
+        <li>Interseksi multi-kriteria</li>
+        <li>Ekspor data mentah CSV/GeoJSON</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DATA LAYERS -->
+<section class="layers" id="data">
+  <div class="layers-inner">
+    <div class="section-label">Data</div>
+    <div class="section-title">18+ Layer Data Terintegrasi</div>
+    <p class="section-sub">Dataset geospasial dari berbagai sumber resmi pemerintah dan lembaga riset nasional.</p>
+
+    <div class="layers-grid">
+      <div class="layer-chip"><div class="lc-dot" style="background:#2D6A4F"></div>Kesesuaian Lahan S1/S2/S3</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#52A77D"></div>Curah Hujan Tahunan</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#74C69D"></div>Jenis & Tekstur Tanah</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#95D5B2"></div>Topografi & Ketinggian</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#F4A261"></div>Produksi Kelapa (ton/ha)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#E8A87C"></div>Luas Panen Kebun</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#D4845A"></div>Produktivitas Petani</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#4A90D9"></div>Pelabuhan Ekspor</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#5BA3E8"></div>Pabrik Pengolahan</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#6CB6F5"></div>Jaringan Jalan Utama</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#E76F51"></div>Zona Risiko Banjir</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#F4A261"></div>Zona Risiko Kekeringan</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#9C6ADE"></div>Gempa & Risiko Bencana</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#28A745"></div>NDVI / Vegetasi</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#20C997"></div>Harga Kopra Regional</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#17A2B8"></div>Ekspor Produk Kelapa</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-badge">&#127810; Siap digunakan</div>
+  <h2>Mulai analisis kelapa<br>Indonesia sekarang</h2>
+  <p>Daftar gratis dan akses seluruh fitur platform geospasial PetaKelapa.id.</p>
+  <a class="btn-white" href="PetaKelapa.html">
+    &#9654;&#65038; Buka Platform &rarr;
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="#2D6A4F"/>
+      <path d="M16 6C16 6 9 10 9 18C9 22.4 12.1 26 16 26C19.9 26 23 22.4 23 18C23 10 16 6 16 6Z" fill="white" opacity="0.9"/>
+      <path d="M16 12C16 12 12 15 12 19C12 21.2 13.8 23 16 23C18.2 23 20 21.2 20 19C20 15 16 12 16 12Z" fill="#2D6A4F"/>
+      <path d="M16 26V20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="footer-brand-name">PetaKelapa.id</span>
+  </div>
+  <span class="footer-copy">&copy; 2025 PetaKelapa.id &mdash; Platform Geospasial Industri Kelapa Indonesia</span>
+  <div class="footer-links">
+    <a href="PetaKelapa.html">Masuk</a>
+    <a href="#fitur">Fitur</a>
+    <a href="#data">Data</a>
+  </div>
+</footer>
+
+</body>
+</html>

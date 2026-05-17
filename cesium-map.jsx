@@ -9,6 +9,7 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     mode, activeLayers, derivatifFilter,
     onSelectKab, onSelectPort, onSelectFactory,
     selectedKab, selectedDerivatif, intersectionHits, bar3D, scenarioDelta,
+    userLayers, opacities,
   } = props;
 
   const containerRef = cmUseRef(null);
@@ -106,51 +107,6 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     if (v === "nitrogen") return "#9B7BD1";
     if (v === "night-light") return "#FBBF24";
     return "#2D6A4F";
-  }
-
-  function pointInRing(lon, lat, ring) {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const xi = ring[i][0];
-      const yi = ring[i][1];
-      const xj = ring[j][0];
-      const yj = ring[j][1];
-      const denom = (yj - yi) || 1e-9;
-      const intersect = ((yi > lat) !== (yj > lat)) &&
-        (lon < (xj - xi) * (lat - yi) / denom + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-
-  function pickKabFromLonLat(lon, lat) {
-    let hit = null;
-    for (const k of PKD.KABUPATEN) {
-      if (pointInRing(lon, lat, k.ring)) { hit = k; break; }
-    }
-    if (hit) return hit;
-    let best = null;
-    let bestDist = Infinity;
-    PKD.KABUPATEN.forEach(k => {
-      const dx = lon - k.centroid[0];
-      const dy = lat - k.centroid[1];
-      const d = (dx * dx) + (dy * dy);
-      if (d < bestDist) { bestDist = d; best = k; }
-    });
-    return best;
-  }
-
-  function pickKabFromScreen(position) {
-    const viewer = viewerRef.current;
-    if (!viewer) return null;
-    const scene = viewer.scene;
-    const cartesian = scene.pickPosition(position) ||
-      viewer.camera.pickEllipsoid(position, scene.globe.ellipsoid);
-    if (!cartesian) return null;
-    const carto = Cesium.Cartographic.fromCartesian(cartesian);
-    const lon = Cesium.Math.toDegrees(carto.longitude);
-    const lat = Cesium.Math.toDegrees(carto.latitude);
-    return pickKabFromLonLat(lon, lat);
   }
 
   // ===== Initialize Cesium viewer once =====
@@ -418,27 +374,22 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     handler.setInputAction((click) => {
-      let handled = false;
       const picked = viewer.scene.pick(click.position);
       if (picked && picked.id && picked.id.properties) {
         const type = picked.id.properties.type?.getValue();
         if (type === "kabupaten") {
           const kabId = picked.id.properties.kabId.getValue();
           const k = PKD.KABUPATEN.find(x => x.id === kabId);
-          if (k) { props.onSelectKab(k); handled = true; }
+          if (k) props.onSelectKab(k);
         } else if (type === "factory") {
           const fid = picked.id.properties.facId.getValue();
           const f = PKD.FACTORIES.find(x => x.id === fid);
-          if (f && props.onSelectFactory) { props.onSelectFactory(f); handled = true; }
+          if (f) props.onSelectFactory && props.onSelectFactory(f);
         } else if (type === "port") {
           const pid = picked.id.properties.portId.getValue();
           const p = PKD.PORTS.find(x => x.id === pid);
-          if (p && props.onSelectPort) { props.onSelectPort(p); handled = true; }
+          if (p) props.onSelectPort && props.onSelectPort(p);
         }
-      }
-      if (!handled) {
-        const k = pickKabFromScreen(click.position);
-        if (k) props.onSelectKab(k);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -568,6 +519,80 @@ window.CesiumPetaMap = function CesiumPetaMap(props) {
     refs.rasterNight.forEach(ent => { ent.show = activeLayers.has("nightlight"); });
     refs.roads.forEach(ent => { ent.show = activeLayers.has("roads"); });
   }, [activeLayers, ready]);
+
+  // User layers — render drawn geometries and intersection results as Cesium entities
+  const userLayerEntities = cmUseRef({});
+  cmUseEffect(() => {
+    if (!ready || !viewerRef.current) return;
+    const viewer = viewerRef.current;
+    const Cesium = window.Cesium;
+    const existing = userLayerEntities.current;
+
+    // Remove entities for layers no longer present or inactive
+    Object.keys(existing).forEach(layerId => {
+      if (!activeLayers.has(layerId)) {
+        existing[layerId].forEach(e => { try { viewer.entities.remove(e); } catch(err) {} });
+        delete existing[layerId];
+      }
+    });
+
+    // Add/update active user layers
+    (userLayers || []).filter(l => activeLayers.has(l.id)).forEach(layer => {
+      // Already rendered
+      if (existing[layer.id]) return;
+      const color = Cesium.Color.fromCssColorString(layer.color || "#F4A261");
+      const alpha = opacities?.[layer.id] ?? layer.opacity ?? 0.75;
+      const entities = [];
+
+      // Drawn on map
+      if (layer.drawnPoints && layer.drawnPoints.length > 0) {
+        const coords = layer.drawnPoints;
+
+        if (layer.geomType === "polygon" && coords.length >= 3) {
+          const positions = coords.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, 10));
+          entities.push(viewer.entities.add({
+            polygon: {
+              hierarchy: new Cesium.PolygonHierarchy(positions),
+              material: color.withAlpha(alpha * 0.35),
+              outline: true,
+              outlineColor: color.withAlpha(alpha),
+              outlineWidth: 2,
+              height: 10,
+            },
+            label: { text: layer.name, font: "11px sans-serif", fillColor: color, showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.7), pixelOffset: new Cesium.Cartesian2(0, -14), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2000000) },
+            position: Cesium.Cartesian3.fromDegrees(coords[0][0], coords[0][1], 20),
+          }));
+        } else if (layer.geomType === "line" && coords.length >= 2) {
+          const positions = coords.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, 10));
+          entities.push(viewer.entities.add({
+            polyline: { positions, width: 2.5, material: new Cesium.ColorMaterialProperty(color.withAlpha(alpha)) },
+          }));
+        } else {
+          coords.forEach(([lon, lat], i) => {
+            entities.push(viewer.entities.add({
+              position: Cesium.Cartesian3.fromDegrees(lon, lat, 10),
+              point: { pixelSize: 10, color: color.withAlpha(alpha), outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
+              label: i === 0 ? { text: layer.name, font: "11px sans-serif", fillColor: color, showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.7), pixelOffset: new Cesium.Cartesian2(0, -16), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2000000) } : undefined,
+            }));
+          });
+        }
+      }
+
+      // Intersection result geometry (kabupaten centroids)
+      if (layer.geometry && layer.geometry.length > 0) {
+        layer.geometry.forEach((g, i) => {
+          const [lon, lat] = g.coord;
+          entities.push(viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(lon, lat, 10),
+            point: { pixelSize: 9, color: color.withAlpha(alpha), outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
+            label: i === 0 ? { text: layer.name, font: "11px sans-serif", fillColor: color, showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.7), pixelOffset: new Cesium.Cartesian2(0, -16), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 3000000) } : undefined,
+          }));
+        });
+      }
+
+      if (entities.length > 0) existing[layer.id] = entities;
+    });
+  }, [userLayers, activeLayers, opacities, ready]);
 
   // 3D bars
   cmUseEffect(() => {

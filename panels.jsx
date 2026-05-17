@@ -40,113 +40,227 @@ function downloadCSV(filename, rows) {
 }
 window.downloadCSV = downloadCSV;
 
-// ========================= LAYER SIDEBAR =========================
-window.LayerSidebar = function LayerSidebar({ active, setActive, opacities, setOpacities, allowedGroups, onAdjustThreshold, onUpload, thresholds, layerOverrides }) {
-  const [openGroup, setOpenGroup] = React.useState({
-    "Pertanian": true, "Industri": true,
-    "Lingkungan": true, "Tanah (SoilGrids/HWSD2)": false,
-    "Infrastruktur (OSM)": false, "Pendukung": false
-  });
+// ========================= LAYER SIDEBAR (Unified) =========================
+// All layers — system and user — live in the same group structure.
+// Any layer can be moved to any group via the ↪ dropdown.
+// groupAssignments: { layerId: "GroupName" } overrides the layer's default group.
+
+function MoveDropdown({ layer, allGroupNames, setGroupAssignment, onNewGroup }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div style={{ position: "relative" }} ref={ref}>
+      <button className="sb-item-info" title="Pindah ke grup lain"
+        onClick={e => { e.stopPropagation(); setOpen(s => !s); }}
+        style={{ fontSize: 11, color: open ? "var(--primary)" : undefined }}>↪</button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: 28, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "var(--shadow-card)", zIndex: 60, minWidth: 170, overflow: "hidden" }}>
+          <div style={{ padding: "6px 10px 4px", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-3)" }}>Pindah ke</div>
+          {allGroupNames.map(gn => (
+            <button key={gn} onClick={e => { e.stopPropagation(); setGroupAssignment(layer.id, gn); setOpen(false); }}
+              style={{ display: "block", width: "100%", padding: "7px 12px", background: "transparent", border: 0, textAlign: "left", fontSize: 12, color: "var(--ink)", cursor: "pointer", transition: "background 80ms" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              {gn}
+            </button>
+          ))}
+            <div style={{ borderTop: "1px solid var(--border-soft)", padding: 4 }}>
+              <button onClick={e => { e.stopPropagation(); setOpen(false); onNewGroup && onNewGroup(layer.id); }}
+                style={{ display: "block", width: "100%", padding: "6px 12px", background: "transparent", border: 0, textAlign: "left", fontSize: 11.5, color: "var(--primary)", cursor: "pointer", fontWeight: 600 }}>
+                + Grup baru…
+              </button>
+            </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+window.LayerSidebar = function LayerSidebar({
+  active, setActive, opacities, setOpacities,
+  onAdjustThreshold, onUpload, thresholds, layerOverrides,
+  userLayers, groupAssignments, setGroupAssignment,
+  onAddLayer, onEditLayer, onCreateGroup, user,
+}) {
+  const [openGroups, setOpenGroups] = React.useState({ "Pertanian": true, "Industri": true, "Lingkungan": true });
   const [query, setQuery] = React.useState("");
 
   function toggleLayer(id) {
     const next = new Set(active);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    next.has(id) ? next.delete(id) : next.add(id);
     setActive(next);
   }
 
-  const visibleGroups = PKD.LAYERS.filter(g => !allowedGroups || allowedGroups.includes(g.group));
+  const sharedLayers = React.useMemo(() => {
+    if (!user) return [];
+    return AuthAPI.getSharedLayersForUser(user);
+  }, [user]);
+
+  // Build UNIFIED groups: system layers + user layers all in one group structure
+  const { unifiedGroups, allGroupNames } = React.useMemo(() => {
+    const groups = {}; // groupName → [layerInfo]
+    const ga = groupAssignments || {};
+
+    // System layers — respect groupAssignments override
+    PKD.LAYERS.forEach(g => {
+      g.items.forEach(item => {
+        const displayGroup = ga[item.id] || g.group;
+        if (!groups[displayGroup]) groups[displayGroup] = [];
+        groups[displayGroup].push({ ...item, source: "system", originalGroup: g.group });
+      });
+    });
+
+    // User + shared layers
+    const allUL = [
+      ...(userLayers || []),
+      ...sharedLayers.filter(sl => !(userLayers || []).some(ul => ul.id === sl.id)),
+    ];
+    allUL.forEach(l => {
+      const isShared = l.createdBy !== user?.email;
+      const displayGroup = ga[l.id] || l.group || "Lainnya";
+      if (!groups[displayGroup]) groups[displayGroup] = [];
+      groups[displayGroup].push({ ...l, source: isShared ? "shared" : "user" });
+    });
+
+    // Order: system groups first, then custom
+    const sysOrder = PKD.LAYERS.map(g => g.group);
+    const custom = Object.keys(groups).filter(g => !sysOrder.includes(g));
+    const ordered = [...sysOrder.filter(g => groups[g]), ...custom];
+    const unified = ordered.map(name => ({ name, items: groups[name] })).filter(g => g.items?.length);
+
+    // All group names for MoveDropdown
+    const names = [...new Set([...sysOrder, ...custom, ...Object.values(ga)])].filter(Boolean);
+
+    return { unifiedGroups: unified, allGroupNames: names };
+  }, [userLayers, groupAssignments, sharedLayers, user]);
+
+  function LayerRow({ layer }) {
+    const on = active.has(layer.id);
+    const isUser = layer.source === "user" || layer.source === "shared";
+    const isOwned = layer.source === "user";
+    const hasThreshold = !!(thresholds && thresholds[layer.id]);
+    const hasOverride = !!(layerOverrides && layerOverrides[layer.id]);
+    const sourceBadge = { shared: ["SHARED", "var(--info-bg)", "var(--info-ink)"], user: ["USER", "var(--accent-soft)", "#7A3A10"] }[layer.source];
+
+    return (
+      <div className="sb-layer-entry">
+        <div className="sb-item">
+          {isUser
+            ? <span style={{ width: 8, height: 8, borderRadius: 2, background: layer.color || "var(--primary)", flexShrink: 0, alignSelf: "center" }} />
+            : <span className="sb-item-ic">{layer.icon}</span>
+          }
+          <span className="sb-item-name" title={layer.name} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {isUser && <span>{layer.icon}</span>}
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{layer.name}</span>
+            {sourceBadge && <span style={{ fontSize: 8.5, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: sourceBadge[1], color: sourceBadge[2], flexShrink: 0 }}>{sourceBadge[0]}</span>}
+          </span>
+          <label className="toggle">
+            <input type="checkbox" checked={on} onChange={() => toggleLayer(layer.id)} />
+            <span className="toggle-track" />
+          </label>
+          <MoveDropdown layer={layer} allGroupNames={allGroupNames} setGroupAssignment={setGroupAssignment}
+            onNewGroup={(layerId) => onCreateGroup && onCreateGroup([layerId])} />
+          {hasThreshold && !isUser && (
+            <button className="sb-item-info" title="Atur threshold" onClick={() => onAdjustThreshold && onAdjustThreshold(layer.id)}>⚙</button>
+          )}
+          {(!isUser || hasOverride) && (
+            <button className={"sb-item-info " + (hasOverride ? "act" : "")}
+              title={hasOverride ? "Override aktif" : "Upload data"}
+              onClick={() => onUpload && onUpload(layer.id)}>⇪</button>
+          )}
+          {isOwned && (
+            <button className="sb-item-info" title="Edit layer"
+              style={{ color: "var(--primary)", borderColor: "transparent" }}
+              onClick={() => onEditLayer && onEditLayer(layer)}>✏</button>
+          )}
+        </div>
+        {on && (
+          <div className="sb-item" style={{ paddingTop: 0 }}>
+            <span />
+            <div className="sb-opacity" style={{ gridColumn: "2 / -1" }}>
+              <input type="range" min={0} max={100}
+                value={Math.round((opacities[layer.id] ?? layer.opacity ?? 0.75) * 100)}
+                onChange={e => setOpacities(o => ({ ...o, [layer.id]: +e.target.value / 100 }))} />
+              <span className="opv">{Math.round((opacities[layer.id] ?? layer.opacity ?? 0.75) * 100)}%</span>
+            </div>
+          </div>
+        )}
+        {on && hasOverride && (
+          <div style={{ padding: "2px 14px 4px", fontSize: 10, color: "var(--primary-ink)", background: "var(--primary-soft)", display: "flex", gap: 5, alignItems: "center" }}>
+            <span>⇪</span><span>Override: <b>{layerOverrides[layer.id].fileName}</b></span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const filtered = query.toLowerCase();
 
   return (
     <aside className="sidebar">
       <div className="sb-head">
         <div className="sb-title">Layer Manager</div>
-        <button className="icon-btn" title="Bersihkan semua" onClick={() => setActive(new Set())}>⌫</button>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button className="icon-btn" title="Buat grup layer" onClick={() => onCreateGroup && onCreateGroup([])}
+            style={{ fontSize: 13, color: "var(--primary)", borderColor: "var(--primary-soft)" }}>⊞</button>
+          <button className="icon-btn" title="Tambah layer baru" onClick={() => onAddLayer && onAddLayer()}
+            style={{ background: "var(--primary)", color: "white", borderColor: "var(--primary)", fontWeight: 700 }}>+</button>
+          <button className="icon-btn" title="Nonaktifkan semua" onClick={() => setActive(new Set())}>⌫</button>
+        </div>
       </div>
+
       <div className="sb-search">
         <input placeholder="Cari layer…" value={query} onChange={e => setQuery(e.target.value)} />
       </div>
+
       <div className="sb-scroll">
-        {visibleGroups.map(group => {
-          const open = openGroup[group.group];
-          const items = query ? group.items.filter(i => i.name.toLowerCase().includes(query.toLowerCase())) : group.items;
+        {unifiedGroups.map(group => {
+          const items = filtered ? group.items.filter(l => l.name.toLowerCase().includes(filtered)) : group.items;
           if (items.length === 0) return null;
-          const count = items.filter(i => active.has(i.id)).length;
+          const isOpen = openGroups[group.name] !== false;
+          const count = items.filter(l => active.has(l.id)).length;
+          const hasUser = items.some(l => l.source !== "system");
           return (
-            <div key={group.group} className="sb-group">
-              <button className="sb-group-head" onClick={() => setOpenGroup(s => ({ ...s, [group.group]: !open }))}>
-                <span className={"sb-chev " + (open ? "open" : "")}>▸</span>
-                <span className="sb-group-name">{group.group}</span>
+            <div key={group.name} className="sb-group">
+              <button className="sb-group-head" onClick={() => setOpenGroups(s => ({ ...s, [group.name]: !isOpen }))}>
+                <span className={"sb-chev " + (isOpen ? "open" : "")}>▸</span>
+                <span className="sb-group-name">{group.name}</span>
+                {hasUser && <span style={{ fontSize: 8, color: "var(--accent)", fontWeight: 700, marginRight: 2 }}>◈</span>}
                 <span className="sb-group-badge">{count}/{items.length}</span>
               </button>
-              {(open || query) && (
+              {isOpen && (
                 <div className="sb-items">
-                  {items.map(layer => {
-                    const on = active.has(layer.id);
-                    const hasThreshold = !!(thresholds && thresholds[layer.id]);
-                    const hasOverride = !!(layerOverrides && layerOverrides[layer.id]);
-                    return (
-                      <div className="sb-layer-entry" key={layer.id}>
-                        <div className="sb-item">
-                          <span className="sb-item-ic">{layer.icon}</span>
-                          <span className="sb-item-name" title={layer.name}>{layer.name}</span>
-                          <label className="toggle" title="Aktifkan layer">
-                            <input type="checkbox" checked={on} onChange={() => toggleLayer(layer.id)} />
-                            <span className="toggle-track" />
-                          </label>
-                          {hasThreshold && (
-                            <button
-                              className="sb-item-info"
-                              title="Atur threshold / kesesuaian (untuk riset & interseksi)"
-                              onClick={() => onAdjustThreshold && onAdjustThreshold(layer.id)}
-                            >⚙</button>
-                          )}
-                          <button
-                            className={"sb-item-info " + (hasOverride ? "act" : "")}
-                            title={hasOverride ? "Data ter-override · klik untuk kelola" : "Upload data Anda untuk override layer ini"}
-                            onClick={() => onUpload && onUpload(layer.id)}
-                          >⇪</button>
-                        </div>
-                        {on && (
-                          <div className="sb-item">
-                            <span></span>
-                            <div className="sb-opacity" style={{ gridColumn: "2 / -1" }}>
-                              <input
-                                type="range" min={0} max={100}
-                                value={Math.round((opacities[layer.id] ?? layer.opacity) * 100)}
-                                onChange={e => setOpacities(o => ({ ...o, [layer.id]: parseInt(e.target.value) / 100 }))}
-                              />
-                              <span className="opv">{Math.round((opacities[layer.id] ?? layer.opacity) * 100)}%</span>
-                            </div>
-                          </div>
-                        )}
-                        {on && hasOverride && (
-                          <div className="sb-item">
-                            <span></span>
-                            <div style={{ gridColumn: "2 / -1", fontSize: 10.5, color: "var(--primary-ink)", background: "var(--primary-soft)", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                              <span>⇪</span>
-                              <span style={{ flex: 1 }}>Data override aktif: <b>{layerOverrides[layer.id].fileName}</b></span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {items.map(layer => <LayerRow key={layer.id} layer={layer} />)}
                 </div>
               )}
             </div>
           );
         })}
+
+        {(userLayers || []).length === 0 && (
+          <button onClick={() => onAddLayer && onAddLayer()}
+            style={{ width: "calc(100% - 32px)", margin: "12px 16px", padding: "11px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 8, color: "var(--ink-2)", fontSize: 12, cursor: "pointer", textAlign: "center", fontFamily: "var(--font)" }}>
+            + Tambah layer pertama Anda
+          </button>
+        )}
       </div>
+
       <div className="sb-foot">
-        <span>{active.size} layer aktif · {Object.keys(layerOverrides || {}).length} di-override</span>
+        <span>{active.size} aktif · {(userLayers || []).length} layer saya</span>
+        <span style={{ fontSize: 10, color: "var(--ink-3)" }}>{allGroupNames.length} grup</span>
       </div>
     </aside>
   );
 };
 
 // ========================= RIGHT DETAILS PANEL (always visible on /peta) =========================
-window.RightDetailsPanel = function RightDetailsPanel({ kab, activeLayers, thresholds, layerOverrides, scenarioDelta, onCompare, onSelectKab }) {
+window.RightDetailsPanel = function RightDetailsPanel({ kab, activeLayers, thresholds, layerOverrides, scenarioDelta, onCompare, onSelectKab, userLayers }) {
   if (!kab) {
     // Empty state — show overview of how the right panel works + a list of top kabupaten as quick links
     const top = [...PKD.KABUPATEN].sort((a, b) => b.cias - a.cias).slice(0, 6);
@@ -239,6 +353,11 @@ window.RightDetailsPanel = function RightDetailsPanel({ kab, activeLayers, thres
           <div className="cg-label">CIAS Score</div>
           <div className="cg-sub">Env {kab.envSuit.toFixed(2)} · Proc {kab.procStrength.toFixed(2)} · −Log {kab.logisticsPenalty.toFixed(2)}</div>
         </div>
+
+        {/* User layer CIAS summary if any active */}
+        {typeof CIASUserLayersSummary !== "undefined" && (
+          <CIASUserLayersSummary userLayers={userLayers} activeLayers={activeLayers} />
+        )}
 
         <div className="rp-section-title">
           <span>Sub-layer Score</span>
@@ -873,20 +992,33 @@ function Badge({ ok, label }) {
 }
 
 // ========================= INTERSEKSI =========================
-window.InterseksiPanel = function InterseksiPanel({ onClose, onRun, conditions, setConditions, hits, runtime, computing }) {
+window.InterseksiPanel = function InterseksiPanel({ onClose, onRun, conditions, setConditions, hits, runtime, computing, userLayers, onSaveAsLayer }) {
+  const [subTab, setSubTab] = React.useState("query"); // "query" | "type"
+
   const layerOpts = [
-    { id: "ph",         label: "pH H₂O",          unit: "" },
-    { id: "rain",       label: "Curah hujan",     unit: "mm" },
-    { id: "elev",       label: "Elevasi",         unit: "m" },
-    { id: "dist-port",  label: "Jarak pelabuhan", unit: "km" },
-    { id: "soc",        label: "Soil Organic Carbon", unit: "g/kg" },
-    { id: "production", label: "Produksi",        unit: "t/thn" },
+    { id: "ph",         label: "pH H₂O",              unit: "" },
+    { id: "rain",       label: "Curah hujan",          unit: "mm" },
+    { id: "elev",       label: "Elevasi",              unit: "m" },
+    { id: "dist-port",  label: "Jarak pelabuhan",      unit: "km" },
+    { id: "soc",        label: "Soil Organic Carbon",  unit: "g/kg" },
+    { id: "production", label: "Produksi",             unit: "t/thn" },
   ];
   const ops = [">", "<", "=", "between"];
 
   function addCondition() { setConditions([...conditions, { layer: "ph", op: ">", val: 5.5, val2: 6.5 }]); }
   function update(i, patch) { setConditions(conditions.map((c, j) => j === i ? { ...c, ...patch } : c)); }
   function remove(i) { setConditions(conditions.filter((_, j) => j !== i)); }
+
+  // CIAS summary from hits
+  const ciasSummary = React.useMemo(() => {
+    if (!hits || hits.size === 0) return null;
+    const kabList = Array.from(hits).map(id => PKD.KABUPATEN.find(x => x.id === id)).filter(Boolean);
+    const avg = kabList.reduce((s, k) => s + k.cias, 0) / kabList.length;
+    const envAvg = kabList.reduce((s, k) => s + k.envSuit, 0) / kabList.length;
+    const procAvg = kabList.reduce((s, k) => s + k.procStrength, 0) / kabList.length;
+    const prodTotal = kabList.reduce((s, k) => s + k.production, 0);
+    return { avg, envAvg, procAvg, prodTotal, count: kabList.length };
+  }, [hits]);
 
   return (
     <div className="dock-panel">
@@ -896,65 +1028,115 @@ window.InterseksiPanel = function InterseksiPanel({ onClose, onRun, conditions, 
           <h3>Layer Cross Analysis</h3>
         </div>
         <div className="dock-tools">
-          <button className="btn-primary" onClick={onRun} disabled={computing}>
-            {computing ? <><span className="spinner" /> Menghitung…</> : "▶ Hitung Interseksi"}
-          </button>
-          <button className="btn-ghost" disabled={!hits || hits.size === 0} onClick={() => {
-            const features = Array.from(hits || []).map(id => {
-              const k = PKD.KABUPATEN.find(x => x.id === id);
-              return { type: "Feature", geometry: { type: "Point", coordinates: k.centroid }, properties: { id: k.id, name: k.name, province: k.province, cias: k.cias, production: k.production } };
-            });
-            const blob = new Blob([JSON.stringify({ type: "FeatureCollection", features }, null, 2)], { type: "application/geo+json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a"); a.href = url; a.download = `interseksi_${new Date().toISOString().slice(0,10)}.geojson`;
-            document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
-          }}>⇣ Ekspor GeoJSON</button>
+          {subTab === "query" && (
+            <>
+              <button className="btn-primary" onClick={onRun} disabled={computing}>
+                {computing ? "Menghitung…" : "▶ Hitung Interseksi"}
+              </button>
+              <button className="btn-ghost" disabled={!hits || hits.size === 0} onClick={() => {
+                const features = Array.from(hits || []).map(id => {
+                  const k = PKD.KABUPATEN.find(x => x.id === id);
+                  return { type: "Feature", geometry: { type: "Point", coordinates: k.centroid }, properties: { id: k.id, name: k.name, province: k.province, cias: k.cias, production: k.production } };
+                });
+                const blob = new Blob([JSON.stringify({ type: "FeatureCollection", features }, null, 2)], { type: "application/geo+json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `interseksi_${new Date().toISOString().slice(0,10)}.geojson`;
+                document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+              }}>⇣ GeoJSON</button>
+              {hits && hits.size > 0 && (
+                <button className="btn-primary sm" onClick={() => onSaveAsLayer && onSaveAsLayer()}
+                  style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  ⊕ Simpan sebagai Layer
+                </button>
+              )}
+            </>
+          )}
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
       </div>
-      <div className="dock-body">
-        <div className="cond-list">
-          {conditions.map((c, i) => {
-            const lay = layerOpts.find(l => l.id === c.layer) || layerOpts[0];
-            return (
-              <div key={i} className="cond-row">
-                <span className="cond-conj">{i === 0 ? "WHERE" : "AND"}</span>
-                <select value={c.layer} onChange={e => update(i, { layer: e.target.value })}>
-                  {layerOpts.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
-                </select>
-                <select value={c.op} onChange={e => update(i, { op: e.target.value })}>
-                  {ops.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <input type="number" value={c.val} onChange={e => update(i, { val: parseFloat(e.target.value) })} />
-                {c.op === "between" && (
-                  <>
-                    <span className="cond-unit">—</span>
-                    <input type="number" value={c.val2} onChange={e => update(i, { val2: parseFloat(e.target.value) })} />
-                  </>
-                )}
-                <span className="cond-unit">{lay.unit}</span>
-                <button className="icon-btn" onClick={() => remove(i)}>✕</button>
-              </div>
-            );
-          })}
-          <button className="btn-ghost" onClick={addCondition}>+ Tambah Kondisi</button>
-        </div>
 
-        {hits && (
-          <div className="cond-result">
-            <div className="cr-stats">
-              <div><b className="big">{hits.size}</b><span>kabupaten memenuhi</span></div>
-              <div><b className="big mono">{runtime.toFixed(2)}s</b><span>waktu komputasi</span></div>
-              <div><b className="big">{Math.round(hits.size / PKD.KABUPATEN.length * 100)}%</b><span>dari total</span></div>
-            </div>
-            <div className="cr-chips">
-              {Array.from(hits).slice(0, 28).map(id => {
-                const k = PKD.KABUPATEN.find(x => x.id === id);
-                return <span key={id} className="hit-chip">{k.name}</span>;
+      {/* Sub-tabs */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border-soft)", padding: "0 20px" }}>
+        {[["query", "▶ Query Multi-Layer"], ["type", "⬡ Tipe Geometri Hasil"]].map(([t, label]) => (
+          <button key={t} onClick={() => setSubTab(t)}
+            style={{ background: "none", border: 0, padding: "10px 14px", fontSize: 12.5, fontWeight: 500, color: subTab === t ? "var(--primary)" : "var(--ink-2)", borderBottom: subTab === t ? "2px solid var(--primary)" : "2px solid transparent", cursor: "pointer", marginBottom: -1 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="dock-body">
+        {subTab === "query" && (
+          <>
+            <div className="cond-list">
+              {conditions.map((c, i) => {
+                const lay = layerOpts.find(l => l.id === c.layer) || layerOpts[0];
+                return (
+                  <div key={i} className="cond-row">
+                    <span className="cond-conj">{i === 0 ? "WHERE" : "AND"}</span>
+                    <select value={c.layer} onChange={e => update(i, { layer: e.target.value })}>
+                      {layerOpts.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+                    </select>
+                    <select value={c.op} onChange={e => update(i, { op: e.target.value })}>
+                      {ops.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    <input type="number" value={c.val} onChange={e => update(i, { val: parseFloat(e.target.value) })} />
+                    {c.op === "between" && (
+                      <>
+                        <span className="cond-unit">—</span>
+                        <input type="number" value={c.val2} onChange={e => update(i, { val2: parseFloat(e.target.value) })} />
+                      </>
+                    )}
+                    <span className="cond-unit">{lay.unit}</span>
+                    <button className="icon-btn" onClick={() => remove(i)}>✕</button>
+                  </div>
+                );
               })}
-              {hits.size > 28 && <span className="hit-chip muted">+{hits.size - 28} lainnya</span>}
+              <button className="btn-ghost" onClick={addCondition}>+ Tambah Kondisi</button>
             </div>
-          </div>
+
+            {hits && (
+              <div className="cond-result">
+                <div className="cr-stats">
+                  <div><b className="big">{hits.size}</b><span>kabupaten memenuhi</span></div>
+                  <div><b className="big mono">{runtime.toFixed(2)}s</b><span>waktu komputasi</span></div>
+                  <div><b className="big">{Math.round(hits.size / PKD.KABUPATEN.length * 100)}%</b><span>dari total</span></div>
+                </div>
+
+                {/* CIAS summary of intersected result */}
+                {ciasSummary && (
+                  <div style={{ background: "linear-gradient(135deg, var(--primary-soft), #EEF7F1)", border: "1px solid #C8E0D2", borderRadius: 8, padding: "12px 14px", margin: "12px 0" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--primary-ink)", marginBottom: 8 }}>CIAS Hasil Interseksi</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                      {[
+                        ["CIAS avg", ciasSummary.avg.toFixed(2)],
+                        ["Env Suit", ciasSummary.envAvg.toFixed(2)],
+                        ["Proc Str", ciasSummary.procAvg.toFixed(2)],
+                        ["Produksi", (ciasSummary.prodTotal / 1000).toFixed(0) + "K t"],
+                      ].map(([label, val]) => (
+                        <div key={label} style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", textAlign: "center" }}>
+                          <div style={{ fontSize: 9.5, color: "var(--ink-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--primary)", marginTop: 2 }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="cr-chips">
+                  {Array.from(hits).slice(0, 28).map(id => {
+                    const k = PKD.KABUPATEN.find(x => x.id === id);
+                    return <span key={id} className="hit-chip">{k.name}</span>;
+                  })}
+                  {hits.size > 28 && <span className="hit-chip muted">+{hits.size - 28} lainnya</span>}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {subTab === "type" && (
+          <IntersectionTypePanel userLayers={userLayers || []} />
         )}
       </div>
     </div>

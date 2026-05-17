@@ -15,6 +15,8 @@ window.PetaMap = function PetaMap(props) {
     intersectionHits,
     bar3D,
     scenarioDelta,
+    userLayers,
+    opacities: mapOpacities,
   } = props;
 
   const wrapRef = useRef(null);
@@ -98,7 +100,7 @@ window.PetaMap = function PetaMap(props) {
   // Pan/zoom
   const drag = useRef({ active: false, x: 0, y: 0 });
   function onMouseDown(e) {
-    if (e.target.closest('.dock-panel, .info-card, .legend, .mode-pill, .bar3d-ctrl, .map-toolbar, .cesium-banner, .kesesuaian-ctrl')) return;
+    if (e.target.closest('.dock-panel, .info-card, .legend, .mode-pill, .bar3d-ctrl, .map-toolbar, .cesium-banner')) return;
     drag.current = { active: true, x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
   }
   function onMouseMove(e) {
@@ -113,7 +115,7 @@ window.PetaMap = function PetaMap(props) {
   }
   function onMouseUp() { drag.current.active = false; }
   function onWheel(e) {
-    if (e.target.closest('.dock-panel, .info-card, .kesesuaian-ctrl')) return;
+    if (e.target.closest('.dock-panel, .info-card')) return;
     e.preventDefault();
     const dk = e.deltaY < 0 ? 1.15 : 0.87;
     setTransform(t => ({ ...t, k: Math.max(0.6, Math.min(6, t.k * dk)) }));
@@ -196,7 +198,7 @@ window.PetaMap = function PetaMap(props) {
         <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
           {/* Region landmasses */}
           {PKD.REGIONS.map(r => (
-            <path key={r.id} d={ringToD(r.ring)} fill="#E8EDE3" stroke="#A8B898" strokeWidth={0.8} filter="url(#mapShadow)" style={{ pointerEvents: "none" }} />
+            <path key={r.id} d={ringToD(r.ring)} fill="#E8EDE3" stroke="#A8B898" strokeWidth={0.8} filter="url(#mapShadow)" />
           ))}
 
           {/* Coconut density raster overlay */}
@@ -270,7 +272,7 @@ window.PetaMap = function PetaMap(props) {
 
           {/* Region boundaries */}
           {activeLayers.has("batas") && PKD.REGIONS.map(r => (
-            <path key={"b-" + r.id} d={ringToD(r.ring)} fill="none" stroke="#7CA083" strokeWidth={0.5} strokeDasharray="3 2" opacity={0.6} style={{ pointerEvents: "none" }} />
+            <path key={"b-" + r.id} d={ringToD(r.ring)} fill="none" stroke="#7CA083" strokeWidth={0.5} strokeDasharray="3 2" opacity={0.6} />
           ))}
 
           {/* 3D bar chart */}
@@ -280,7 +282,7 @@ window.PetaMap = function PetaMap(props) {
             const h = (v / barMax()) * 80;
             const w = 7;
             return (
-              <g key={"bar-" + k.id} style={{ pointerEvents: "none" }}>
+              <g key={"bar-" + k.id}>
                 <rect x={x - w / 2} y={y - h} width={w} height={h} fill={barColor()} opacity={0.85} />
                 <rect x={x - w / 2} y={y - h} width={w} height={2} fill="#fff" opacity={0.7} />
                 <line x1={x - w / 2} y1={y} x2={x - w / 2} y2={y - h} stroke="rgba(0,0,0,0.25)" strokeWidth={0.8} />
@@ -319,7 +321,7 @@ window.PetaMap = function PetaMap(props) {
             const [x, y] = pt(selectedKab.centroid);
             const r = 18 + ((tick % 2) === 0 ? 4 : 10);
             return (
-              <g key="pulse" style={{ pointerEvents: "none" }}>
+              <g key="pulse">
                 <circle cx={x} cy={y} r={r} fill="none" stroke="#2D6A4F" strokeWidth={1.5} opacity={0.55 - ((tick % 2) === 0 ? 0.1 : 0.35)} />
                 <circle cx={x} cy={y} r={5} fill="#2D6A4F" stroke="white" strokeWidth={1.5} />
               </g>
@@ -331,17 +333,77 @@ window.PetaMap = function PetaMap(props) {
             const a = pt(k.centroid);
             const b = pt(k.nearestPort.coord);
             return (
-              <line key={"rd-" + k.id} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="#F4A261" strokeWidth={0.6} opacity={0.5} strokeDasharray="3 2" style={{ pointerEvents: "none" }} />
+              <line key={"rd-" + k.id} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="#F4A261" strokeWidth={0.6} opacity={0.5} strokeDasharray="3 2" />
             );
           })}
           {activeLayers.has("waterways") && PKD.REGIONS.map(r => (
-            <path key={"ww-" + r.id} d={ringToD(r.ring)} fill="none" stroke="#3B82F6" strokeWidth={0.4} strokeDasharray="1 3" opacity={0.4} style={{ pointerEvents: "none" }} />
+            <path key={"ww-" + r.id} d={ringToD(r.ring)} fill="none" stroke="#3B82F6" strokeWidth={0.4} strokeDasharray="1 3" opacity={0.4} />
           ))}
           {activeLayers.has("buildings") && PKD.KABUPATEN.map(k => {
             const [x, y] = pt(k.centroid);
-            return <circle key={"bd-" + k.id} cx={x} cy={y} r={1.5} fill="#6B7280" opacity={0.5} style={{ pointerEvents: "none" }} />;
+            return <circle key={"bd-" + k.id} cx={x} cy={y} r={1.5} fill="#6B7280" opacity={0.5} />;
           })}
         </g>
+
+        {/* User layers overlay */}
+        {(userLayers || []).filter(l => activeLayers.has(l.id)).map(layer => {
+          const opacity = (mapOpacities?.[layer.id] ?? layer.opacity ?? 0.75);
+          const color = layer.color || "#F4A261";
+
+          // Drawn on map — drawnPoints is array of [lon, lat]
+          if (layer.drawnPoints && layer.drawnPoints.length > 0) {
+            const pxPts = layer.drawnPoints.map(coord => pt(coord));
+            if (layer.geomType === "polygon" && pxPts.length >= 3) {
+              return (
+                <polygon key={layer.id}
+                  points={pxPts.map(p => p.join(",")).join(" ")}
+                  fill={color} fillOpacity={opacity * 0.3}
+                  stroke={color} strokeWidth={2} strokeOpacity={opacity}
+                  style={{ pointerEvents: "none" }} />
+              );
+            }
+            if (layer.geomType === "line" && pxPts.length >= 2) {
+              return (
+                <polyline key={layer.id}
+                  points={pxPts.map(p => p.join(",")).join(" ")}
+                  fill="none" stroke={color} strokeWidth={2.5} strokeOpacity={opacity}
+                  style={{ pointerEvents: "none" }} />
+              );
+            }
+            // points / mesh
+            return (
+              <g key={layer.id} opacity={opacity} style={{ pointerEvents: "none" }}>
+                {pxPts.map((p, i) => (
+                  <g key={i}>
+                    <circle cx={p[0]} cy={p[1]} r={7} fill={color} stroke="white" strokeWidth={2} />
+                    <text x={p[0]} y={p[1] - 10} textAnchor="middle" fontSize={9} fill={color} fontWeight="700">{layer.name}</text>
+                  </g>
+                ))}
+              </g>
+            );
+          }
+
+          // Intersection result layer — has geometry array with {coord, props}
+          if (layer.geometry && layer.geometry.length > 0) {
+            return (
+              <g key={layer.id} opacity={opacity} style={{ pointerEvents: "none" }}>
+                {layer.geometry.map((g, i) => {
+                  const [x, y] = pt(g.coord);
+                  return (
+                    <g key={i}>
+                      <circle cx={x} cy={y} r={6} fill={color} stroke="white" strokeWidth={2} />
+                    </g>
+                  );
+                })}
+                {/* Layer name label at centroid of first point */}
+                {(() => { const [x, y] = pt(layer.geometry[0].coord); return <text key="lbl" x={x} y={y - 12} textAnchor="middle" fontSize={9} fill={color} fontWeight="700">{layer.name}</text>; })()}
+              </g>
+            );
+          }
+
+          // Layer has no geometry yet (upload-only, not yet drawn) — show a legend indicator only
+          return null;
+        })}
 
         {/* Coord ticks (fixed) */}
         <g transform={`translate(0, ${size.h - 22})`} className="map-coords">

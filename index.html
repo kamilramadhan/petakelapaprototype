@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <title>PetaKelapa.id — Platform Geospasial Industri Kelapa Indonesia</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="Platform geospasial untuk pemetaan, analitik, dan pengambilan keputusan berbasis data industri kelapa Indonesia." />
+<meta name="description" content="Platform geospasial untuk pemetaan, analitik, kolaborasi layer data, dan pengambilan keputusan berbasis data industri kelapa Indonesia." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
@@ -35,479 +35,254 @@
   --font:         "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono:         "JetBrains Mono", monospace;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font);
-  font-size: 15px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 
-/* ── NAVBAR ── */
+/* ── NAV ── */
 .nav {
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 40px;
-  height: 64px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(10px);
+  padding: 0 40px; height: 64px;
+  background: rgba(255,255,255,0.93); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .nav-brand-name { font-weight: 700; font-size: 17px; color: var(--ink); letter-spacing: -0.01em; }
-.nav-links { display: flex; align-items: center; gap: 32px; }
-.nav-links a {
-  color: var(--ink-2); text-decoration: none;
-  font-size: 14px; font-weight: 500;
-  transition: color 120ms;
-}
+.nav-links { display: flex; align-items: center; gap: 30px; }
+.nav-links a { color: var(--ink-2); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 120ms; }
 .nav-links a:hover { color: var(--ink); }
 .nav-cta { display: flex; align-items: center; gap: 10px; }
-.btn-ghost-sm {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--ink); padding: 8px 18px;
-  border-radius: var(--radius-sm); font-size: 13.5px;
-  font-weight: 500; cursor: pointer; text-decoration: none;
-  transition: background 100ms, border-color 100ms;
-}
-.btn-ghost-sm:hover { background: var(--surface); border-color: var(--ink-4); }
-.btn-primary-sm {
-  background: var(--primary); color: white;
-  border: 0; padding: 8px 20px;
-  border-radius: var(--radius-sm); font-size: 13.5px;
-  font-weight: 600; cursor: pointer; text-decoration: none;
-  transition: filter 120ms, transform 80ms;
-}
+.btn-ghost-sm { background: transparent; border: 1px solid var(--border); color: var(--ink); padding: 8px 18px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 100ms; }
+.btn-ghost-sm:hover { background: var(--surface); }
+.btn-primary-sm { background: var(--primary); color: white; border: 0; padding: 8px 20px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: none; transition: filter 120ms; }
 .btn-primary-sm:hover { filter: brightness(1.08); }
-.btn-primary-sm:active { transform: translateY(1px); }
 
 /* ── HERO ── */
 .hero {
-  position: relative;
-  overflow: hidden;
-  padding: 100px 40px 80px;
-  text-align: center;
+  position: relative; overflow: hidden;
+  padding: 96px 40px 76px; text-align: center;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(45,106,79,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, rgba(244,162,97,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, rgba(45,106,79,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(244,162,97,0.06) 0%, transparent 50%),
     var(--bg);
 }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 7px;
   background: var(--primary-soft); color: var(--primary-ink);
-  border: 1px solid #B7D5C2;
-  padding: 5px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 12.5px; font-weight: 600;
-  letter-spacing: 0.03em;
+  border: 1px solid #B7D5C2; padding: 5px 14px;
+  border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em;
   margin-bottom: 26px;
 }
-.hero-badge-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 3px rgba(45,106,79,0.2);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(45,106,79,0.2); }
-  50%       { box-shadow: 0 0 0 6px rgba(45,106,79,0.1); }
-}
-.hero h1 {
-  font-size: clamp(38px, 5vw, 64px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 22px;
-  color: var(--ink);
-}
-.hero h1 span { color: var(--primary); }
-.hero-sub {
-  max-width: 600px; margin: 0 auto 38px;
-  font-size: 18px; color: var(--ink-2); line-height: 1.65;
-}
-.hero-actions {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  flex-wrap: wrap;
-}
-.btn-primary-lg {
-  display: inline-flex; align-items: center; gap: 9px;
-  background: var(--primary); color: white;
-  border: 0; padding: 14px 30px;
-  border-radius: var(--radius-sm); font-size: 15px;
-  font-weight: 600; text-decoration: none;
-  transition: filter 120ms, transform 80ms;
-  box-shadow: 0 4px 20px rgba(45,106,79,0.30);
-}
-.btn-primary-lg:hover { filter: brightness(1.08); }
-.btn-primary-lg:active { transform: translateY(1px); }
-.btn-ghost-lg {
-  display: inline-flex; align-items: center; gap: 9px;
-  background: var(--bg); color: var(--ink);
-  border: 1px solid var(--border); padding: 14px 28px;
-  border-radius: var(--radius-sm); font-size: 15px;
-  font-weight: 500; text-decoration: none;
-  transition: background 100ms, border-color 100ms;
-}
-.btn-ghost-lg:hover { background: var(--surface); border-color: var(--ink-4); }
+.hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px rgba(45,106,79,0.2); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(45,106,79,0.2); } 50% { box-shadow: 0 0 0 6px rgba(45,106,79,0.08); } }
 
-/* Hero stats strip */
-.hero-stats {
-  display: flex; align-items: center; justify-content: center;
-  gap: 0; margin-top: 60px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  max-width: 680px; margin: 60px auto 0;
-}
-.hs-item {
-  flex: 1;
-  padding: 18px 24px;
-  border-right: 1px solid var(--border);
-  text-align: center;
-}
+.hero h1 { font-size: clamp(36px, 5vw, 62px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 22px; color: var(--ink); }
+.hero h1 span { color: var(--primary); }
+.hero-sub { max-width: 580px; margin: 0 auto 38px; font-size: 17.5px; color: var(--ink-2); line-height: 1.65; }
+.hero-actions { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.btn-primary-lg { display: inline-flex; align-items: center; gap: 9px; background: var(--primary); color: white; border: 0; padding: 14px 30px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; text-decoration: none; transition: filter 120ms, transform 80ms; box-shadow: 0 4px 20px rgba(45,106,79,0.28); }
+.btn-primary-lg:hover { filter: brightness(1.08); }
+.btn-ghost-lg { display: inline-flex; align-items: center; gap: 9px; background: var(--bg); color: var(--ink); border: 1px solid var(--border); padding: 14px 28px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 500; text-decoration: none; transition: background 100ms; }
+.btn-ghost-lg:hover { background: var(--surface); }
+
+.hero-stats { display: flex; margin: 58px auto 0; max-width: 700px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.hs-item { flex: 1; padding: 18px 24px; border-right: 1px solid var(--border); text-align: center; }
 .hs-item:last-child { border-right: 0; }
-.hs-val {
-  font-size: 26px; font-weight: 800;
-  color: var(--primary); letter-spacing: -0.02em;
-}
-.hs-label { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+.hs-val { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+.hs-label { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
 
 /* ── APP PREVIEW ── */
-.preview-wrap {
-  padding: 60px 40px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-}
-.preview-inner {
-  max-width: 1100px; margin: 0 auto;
-  position: relative;
-}
-.preview-label {
-  text-align: center;
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--ink-3); margin-bottom: 28px;
-}
-.preview-frame {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.04);
-  overflow: hidden;
-}
-.pf-bar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
+.preview-wrap { padding: 60px 40px; background: var(--surface); border-top: 1px solid var(--border); }
+.preview-inner { max-width: 1160px; margin: 0 auto; }
+.preview-label { text-align: center; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 24px; }
+.preview-frame { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; }
+.pf-bar { display: flex; align-items: center; gap: 8px; padding: 11px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .pf-dot { width: 10px; height: 10px; border-radius: 50%; }
 .pf-dot:nth-child(1) { background: #FF5F57; }
 .pf-dot:nth-child(2) { background: #FEBC2E; }
 .pf-dot:nth-child(3) { background: #28C840; }
-.pf-url {
-  flex: 1; height: 26px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-family: var(--mono); font-size: 11px;
-  color: var(--ink-2);
-  display: flex; align-items: center; justify-content: center;
-}
-.pf-body {
-  display: grid;
-  grid-template-columns: 64px 280px 1fr 340px;
-  height: 420px;
-}
-.pf-rail {
-  background: var(--bg);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  align-items: center;
-  padding: 14px 0; gap: 10px;
-}
-.pf-rail-brand {
-  width: 36px; height: 36px;
-  background: var(--primary);
-  border-radius: 9px;
-  display: grid; place-items: center;
-  color: white; font-size: 16px;
-  margin-bottom: 6px;
-}
-.pf-rail-btn {
-  width: 40px; height: 40px;
-  border-radius: 9px;
-  background: transparent;
-  display: grid; place-items: center;
-  font-size: 17px; color: var(--ink-3);
-}
-.pf-rail-btn.on {
-  background: var(--primary-soft);
-  color: var(--primary-ink);
-}
-.pf-sidebar {
-  background: var(--bg);
-  border-right: 1px solid var(--border);
-  padding: 14px;
-  overflow: hidden;
-}
-.pf-sb-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
-.pf-layer {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 4px;
-  font-size: 12px; color: var(--ink-2);
-}
+.pf-url { flex: 1; height: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); display: flex; align-items: center; justify-content: center; }
+.pf-body { display: grid; grid-template-columns: 56px 260px 1fr 320px; height: 420px; }
+
+.pf-rail { background: var(--bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; }
+.pf-rail-brand { width: 34px; height: 34px; background: var(--primary); border-radius: 9px; display: grid; place-items: center; color: white; font-size: 15px; margin-bottom: 6px; }
+.pf-rail-btn { width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; font-size: 16px; color: var(--ink-3); }
+.pf-rail-btn.on { background: var(--primary-soft); color: var(--primary-ink); }
+
+.pf-sidebar { background: var(--bg); border-right: 1px solid var(--border); padding: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.pf-sb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.pf-sb-title { font-size: 12.5px; font-weight: 600; }
+.pf-sb-btns { display: flex; gap: 4px; }
+.pf-sb-btn { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--border); display: grid; place-items: center; font-size: 10px; color: var(--ink-2); background: var(--bg); cursor: default; }
+.pf-sb-btn.add { background: var(--primary); color: white; border-color: var(--primary); }
+
+.pf-group-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); padding: 6px 4px 4px; margin-top: 4px; }
+.pf-group-label.user { color: var(--accent); }
+
+.pf-layer { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 6px; font-size: 11px; color: var(--ink-2); }
 .pf-layer.on { background: var(--primary-soft); color: var(--primary-ink); }
-.pf-layer-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.pf-toggle { margin-left: auto; width: 28px; height: 16px; background: var(--primary); border-radius: 999px; position: relative; }
-.pf-toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; }
+.pf-layer.user-on { background: #FFF3E8; color: #7A3A10; }
+.pf-layer-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.pf-layer-sq { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.pf-toggle { margin-left: auto; width: 24px; height: 14px; background: var(--primary); border-radius: 999px; position: relative; flex-shrink: 0; }
+.pf-toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 10px; height: 10px; background: white; border-radius: 50%; }
 .pf-toggle.off { background: var(--ink-4); }
 .pf-toggle.off::after { right: auto; left: 2px; }
-.pf-map {
-  background: linear-gradient(160deg, #E8EDE3 0%, #D1E0D6 100%);
-  position: relative; overflow: hidden;
-}
-.pf-map-grid {
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-.pf-map-blob {
-  position: absolute;
-  border-radius: 60% 40% 50% 60%;
-  opacity: 0.7;
-}
-.pf-hud {
-  position: absolute; top: 12px; left: 12px;
-  background: rgba(255,255,255,0.9);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 10px; font-family: var(--mono);
-  color: var(--ink-2);
-}
-.pf-pill {
-  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-  background: rgba(255,255,255,0.95);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px;
-  display: flex; gap: 2px;
-}
-.pf-pill-tab { padding: 5px 14px; border-radius: 999px; font-size: 10px; color: var(--ink-2); }
+.pf-shared-tag { font-size: 8px; background: var(--info-bg); color: var(--info-ink); padding: 1px 4px; border-radius: 3px; font-weight: 700; }
+
+.pf-map { background: linear-gradient(160deg, #E0EBE3 0%, #CDD9CC 100%); position: relative; overflow: hidden; }
+.pf-map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px); background-size: 44px 44px; }
+.pf-blob { position: absolute; border-radius: 60% 40% 50% 60%; }
+.pf-hud { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; font-size: 9.5px; font-family: var(--mono); color: var(--ink-2); }
+.pf-pill { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); border: 1px solid var(--border); border-radius: 999px; padding: 3px; display: flex; gap: 2px; white-space: nowrap; }
+.pf-pill-tab { padding: 4px 12px; border-radius: 999px; font-size: 9.5px; color: var(--ink-2); }
 .pf-pill-tab.on { background: var(--primary); color: white; font-weight: 600; }
-.pf-right {
-  background: var(--bg);
-  border-left: 1px solid var(--border);
-  padding: 14px;
-  overflow: hidden;
-}
-.pf-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--primary); }
-.pf-rp-title { font-size: 16px; font-weight: 700; margin: 4px 0 2px; }
-.pf-rp-sub { font-size: 10px; color: var(--ink-2); margin-bottom: 12px; }
-.pf-gauge {
-  background: linear-gradient(135deg, #F0F7F3, #E5F1EA);
-  border: 1px solid #C8E0D2;
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  text-align: center; margin-bottom: 12px;
-}
-.pf-gauge-val { font-size: 38px; font-weight: 800; color: var(--primary); line-height: 1; }
-.pf-gauge-label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
-.pf-mini-row {
-  display: flex; justify-content: space-between;
-  font-size: 10.5px; padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-}
+
+.pf-right { background: var(--bg); border-left: 1px solid var(--border); padding: 12px; overflow: hidden; }
+.pf-eyebrow { font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--primary); }
+.pf-rp-title { font-size: 15px; font-weight: 700; margin: 3px 0 2px; }
+.pf-rp-sub { font-size: 10px; color: var(--ink-2); margin-bottom: 10px; }
+.pf-gauge { background: linear-gradient(135deg, #F0F7F3, #E5F1EA); border: 1px solid #C8E0D2; border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 10px; }
+.pf-gauge-val { font-size: 36px; font-weight: 800; color: var(--primary); line-height: 1; }
+.pf-gauge-label { font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin-top: 3px; }
+.pf-gauge-sub { font-size: 9px; color: var(--ink-3); margin-top: 2px; font-family: var(--mono); }
+.pf-mini-row { display: flex; justify-content: space-between; font-size: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .pf-mini-row:last-child { border-bottom: 0; }
-.pf-mini-row b { font-family: var(--mono); color: var(--primary); }
+.pf-mini-row span { color: var(--ink-2); }
+.pf-mini-row b { font-family: var(--mono); color: var(--primary); font-weight: 600; }
+.pf-cias-ul { margin-top: 8px; }
+.pf-ul-head { font-size: 8.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+.pf-ul-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: var(--surface); border-radius: 5px; margin-bottom: 3px; border-left: 3px solid var(--accent); }
+.pf-ul-row span { font-size: 10px; flex: 1; }
+.pf-ul-score { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--primary); }
+
+/* ── SECTIONS ── */
+.section-label { text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); margin-bottom: 12px; }
+.section-title { text-align: center; font-size: clamp(26px, 3.5vw, 42px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; color: var(--ink); }
+.section-sub { text-align: center; font-size: 16px; color: var(--ink-2); max-width: 520px; margin: 0 auto 56px; line-height: 1.65; }
 
 /* ── FEATURES ── */
-.features {
-  padding: 90px 40px;
-  background: var(--bg);
-}
-.section-label {
-  text-align: center;
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--primary); margin-bottom: 12px;
-}
-.section-title {
-  text-align: center;
-  font-size: clamp(28px, 3.5vw, 42px);
-  font-weight: 700; letter-spacing: -0.02em;
-  margin-bottom: 14px; color: var(--ink);
-}
-.section-sub {
-  text-align: center;
-  font-size: 16px; color: var(--ink-2);
-  max-width: 520px; margin: 0 auto 60px;
-  line-height: 1.65;
-}
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  max-width: 1100px; margin: 0 auto;
-}
-.feat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px 26px;
-  transition: transform 150ms, box-shadow 150ms;
-}
+.features { padding: 88px 40px; background: var(--bg); }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1100px; margin: 0 auto; }
+.feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px; transition: transform 140ms, box-shadow 140ms; }
 .feat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); }
-.feat-icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  display: grid; place-items: center;
-  font-size: 22px;
-  margin-bottom: 18px;
-}
+.feat-card.accent-border { border-top: 3px solid var(--primary); }
+.feat-icon { width: 46px; height: 46px; border-radius: 11px; display: grid; place-items: center; font-size: 21px; margin-bottom: 16px; }
 .feat-icon.green { background: var(--primary-soft); }
 .feat-icon.amber { background: var(--accent-soft); }
 .feat-icon.blue  { background: var(--info-bg); }
-.feat-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-.feat-desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.feat-icon.purple { background: #EDE9FE; }
+.feat-title { font-size: 15.5px; font-weight: 600; margin-bottom: 7px; }
+.feat-desc { font-size: 13px; color: var(--ink-2); line-height: 1.65; }
+.feat-tag { display: inline-block; margin-top: 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary-ink); background: var(--primary-soft); padding: 2px 9px; border-radius: 4px; }
+.feat-tag.amber { color: #7A3A10; background: var(--accent-soft); }
+.feat-tag.blue { color: var(--info-ink); background: var(--info-bg); }
+.feat-tag.purple { color: #5B21B6; background: #EDE9FE; }
+
+/* ── WORKFLOW ── */
+.workflow { padding: 88px 40px; background: var(--surface); border-top: 1px solid var(--border); }
+.workflow-inner { max-width: 900px; margin: 0 auto; }
+.workflow-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.workflow-steps::before { content: ""; position: absolute; top: 28px; left: calc(12.5% + 20px); right: calc(12.5% + 20px); height: 1px; background: linear-gradient(90deg, var(--primary-soft), var(--accent-soft), var(--info-bg), var(--primary-soft)); }
+.ws-item { text-align: center; padding: 0 16px; }
+.ws-num { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; margin: 0 auto 14px; border: 2px solid var(--border); background: var(--bg); position: relative; z-index: 1; }
+.ws-num.step1 { background: var(--primary-soft); border-color: var(--primary); }
+.ws-num.step2 { background: var(--accent-soft); border-color: var(--accent); }
+.ws-num.step3 { background: var(--info-bg); border-color: #93C5FD; }
+.ws-num.step4 { background: #EDE9FE; border-color: #A78BFA; }
+.ws-title { font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+.ws-desc { font-size: 11.5px; color: var(--ink-2); line-height: 1.55; }
+
+/* ── INTERSECTION DEMO ── */
+.intersect-section { padding: 88px 40px; background: var(--bg); border-top: 1px solid var(--border); }
+.intersect-inner { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.intersect-text {}
+.intersect-text p { font-size: 14px; color: var(--ink-2); line-height: 1.7; margin-bottom: 16px; }
+.intersect-matrix { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.im-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.05em; text-transform: uppercase; }
+.im-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.im-table th { padding: 7px 10px; background: var(--surface-2); color: var(--ink-2); text-align: center; border: 1px solid var(--border); font-weight: 600; }
+.im-table th:first-child { text-align: left; }
+.im-table td { padding: 7px 10px; text-align: center; border: 1px solid var(--border); color: var(--ink); }
+.im-table td:first-child { text-align: left; font-weight: 600; color: var(--ink-2); background: var(--surface); }
+.im-table tr td.hi { background: var(--primary-soft); color: var(--primary-ink); font-weight: 700; }
+.intersect-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.ip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); font-weight: 500; }
+.ip.green { background: var(--primary-soft); color: var(--primary-ink); border-color: #B7D5C2; }
+.ip.amber { background: var(--accent-soft); color: #7A3A10; border-color: #F4D5B5; }
+.ip.blue  { background: var(--info-bg); color: var(--info-ink); border-color: #BFDBFE; }
 
 /* ── ROLES ── */
-.roles {
-  padding: 90px 40px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-}
-.roles-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  max-width: 900px; margin: 0 auto;
-}
-.role-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 26px 24px;
-}
-.role-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 600;
-  padding: 4px 12px; border-radius: var(--radius-pill);
-  letter-spacing: 0.02em; margin-bottom: 14px;
-}
-.role-pill.kementan { background: var(--ok-bg);   color: var(--ok-ink); }
-.role-pill.investor { background: var(--warn-bg); color: var(--warn-ink); }
-.role-pill.peneliti { background: var(--info-bg); color: var(--info-ink); }
-.role-name { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
-.role-desc { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
-.role-list {
-  list-style: none; margin-top: 14px;
-  display: flex; flex-direction: column; gap: 7px;
-}
-.role-list li {
-  display: flex; align-items: flex-start; gap: 8px;
-  font-size: 12.5px; color: var(--ink-2);
-}
-.role-list li::before {
-  content: "✓";
-  color: var(--primary); font-weight: 700;
-  font-size: 12px; flex-shrink: 0; margin-top: 1px;
-}
+.roles { padding: 88px 40px; background: var(--surface); border-top: 1px solid var(--border); }
+.roles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 1100px; margin: 0 auto; }
+.role-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 20px; }
+.role-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 4px 11px; border-radius: var(--radius-pill); letter-spacing: 0.02em; margin-bottom: 12px; }
+.role-pill.gov    { background: var(--ok-bg);   color: var(--ok-ink); }
+.role-pill.invest { background: var(--warn-bg);  color: var(--warn-ink); }
+.role-pill.res    { background: var(--info-bg);  color: var(--info-ink); }
+.role-pill.team   { background: #EDE9FE;         color: #5B21B6; }
+.role-name { font-size: 15.5px; font-weight: 600; margin-bottom: 7px; }
+.role-desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.role-list { list-style: none; margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.role-list li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--ink-2); }
+.role-list li::before { content: "✓"; color: var(--primary); font-weight: 700; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
+
+/* ── UPLOAD FORMATS ── */
+.formats-section { padding: 88px 40px; background: var(--bg); border-top: 1px solid var(--border); }
+.formats-inner { max-width: 900px; margin: 0 auto; }
+.formats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 0; }
+.fmt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; text-align: center; }
+.fmt-icon { font-size: 28px; margin-bottom: 10px; }
+.fmt-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.fmt-exts { font-size: 10px; font-family: var(--mono); color: var(--ink-3); line-height: 1.6; }
+.fmt-desc { font-size: 11.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; }
 
 /* ── DATA LAYERS ── */
-.layers {
-  padding: 90px 40px;
-  background: var(--bg);
-  border-top: 1px solid var(--border);
-}
+.layers-section { padding: 88px 40px; background: var(--surface); border-top: 1px solid var(--border); }
 .layers-inner { max-width: 1100px; margin: 0 auto; }
-.layers-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 12px; margin-top: 0;
-}
-.layer-chip {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 500;
-}
-.layer-chip .lc-dot {
-  width: 10px; height: 10px;
-  border-radius: 3px; flex-shrink: 0;
-}
+.layers-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.layer-chip { display: flex; align-items: center; gap: 9px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 500; }
+.lc-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
 
 /* ── CTA ── */
-.cta-section {
-  padding: 100px 40px;
-  text-align: center;
-  background:
-    radial-gradient(ellipse at 50% 100%, rgba(45,106,79,0.1) 0%, transparent 60%),
-    var(--primary-ink);
-  color: white;
-}
-.cta-badge {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 5px 14px; border-radius: var(--radius-pill);
-  font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em;
-  margin-bottom: 24px;
-}
-.cta-section h2 {
-  font-size: clamp(30px, 4vw, 50px);
-  font-weight: 800; letter-spacing: -0.02em;
-  margin-bottom: 16px; line-height: 1.15;
-}
-.cta-section p { font-size: 17px; opacity: 0.75; margin-bottom: 38px; max-width: 480px; margin-left: auto; margin-right: auto; }
-.cta-section .btn-white {
-  display: inline-flex; align-items: center; gap: 9px;
-  background: white; color: var(--primary-ink);
-  border: 0; padding: 14px 32px;
-  border-radius: var(--radius-sm); font-size: 15px;
-  font-weight: 700; text-decoration: none;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-  transition: filter 120ms, transform 80ms;
-}
-.cta-section .btn-white:hover { filter: brightness(0.95); }
-.cta-section .btn-white:active { transform: translateY(1px); }
+.cta-section { padding: 100px 40px; text-align: center; background: radial-gradient(ellipse at 50% 100%, rgba(45,106,79,0.18) 0%, transparent 60%), var(--primary-ink); color: white; }
+.cta-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 5px 14px; border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 24px; }
+.cta-section h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; line-height: 1.15; }
+.cta-section p { font-size: 17px; opacity: 0.72; margin-bottom: 36px; max-width: 480px; margin-left: auto; margin-right: auto; }
+.btn-white { display: inline-flex; align-items: center; gap: 9px; background: white; color: var(--primary-ink); border: 0; padding: 14px 32px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 24px rgba(0,0,0,0.25); transition: filter 120ms; }
+.btn-white:hover { filter: brightness(0.94); }
+.cta-inst-list { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 36px; opacity: 0.6; }
+.cta-inst { font-size: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); padding: 5px 14px; border-radius: var(--radius-pill); }
 
 /* ── FOOTER ── */
-.footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 40px;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 16px;
-}
+.footer { background: var(--surface); border-top: 1px solid var(--border); padding: 36px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
 .footer-brand { display: flex; align-items: center; gap: 10px; }
 .footer-brand-name { font-weight: 700; font-size: 15px; }
 .footer-copy { font-size: 12.5px; color: var(--ink-3); }
-.footer-links { display: flex; gap: 24px; }
+.footer-links { display: flex; gap: 22px; }
 .footer-links a { font-size: 12.5px; color: var(--ink-2); text-decoration: none; }
 .footer-links a:hover { color: var(--ink); }
 
-@media (max-width: 900px) {
-  .nav-links { display: none; }
+@media (max-width: 1000px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .roles-grid { grid-template-columns: repeat(2, 1fr); }
+  .formats-grid { grid-template-columns: repeat(3, 1fr); }
+  .layers-grid { grid-template-columns: repeat(2, 1fr); }
+  .workflow-steps { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .workflow-steps::before { display: none; }
+  .intersect-inner { grid-template-columns: 1fr; }
   .pf-body { grid-template-columns: 1fr; height: auto; }
   .pf-sidebar, .pf-right, .pf-rail { display: none; }
-  .pf-map { height: 260px; }
-  .features-grid { grid-template-columns: 1fr; }
-  .roles-grid { grid-template-columns: 1fr; }
-  .layers-grid { grid-template-columns: repeat(2, 1fr); }
-  .footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .pf-map { height: 240px; }
+}
+@media (max-width: 640px) {
+  .nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 72px 20px 60px; }
+  .features-grid, .roles-grid, .formats-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: column; }
+  .hs-item { border-right: 0; border-bottom: 1px solid var(--border); }
 }
 </style>
 </head>
@@ -522,12 +297,13 @@ body {
       <path d="M16 12C16 12 12 15 12 19C12 21.2 13.8 23 16 23C18.2 23 20 21.2 20 19C20 15 16 12 16 12Z" fill="#2D6A4F"/>
       <path d="M16 26V20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <span class="nav-brand-name">PetaKelapa.id</span>
+    <span class="nav-brand-name">PetaKelapa<span style="color:var(--primary)">.id</span></span>
   </a>
   <div class="nav-links">
     <a href="#fitur">Fitur</a>
+    <a href="#alur">Cara Kerja</a>
     <a href="#pengguna">Pengguna</a>
-    <a href="#data">Data Layer</a>
+    <a href="#data">Data &amp; Format</a>
   </div>
   <div class="nav-cta">
     <a class="btn-ghost-sm" href="PetaKelapa.html">Masuk</a>
@@ -541,45 +317,30 @@ body {
     <span class="hero-badge-dot"></span>
     Platform Geospasial Industri Kelapa Indonesia
   </div>
-  <h1>Peta Cerdas untuk<br><span>Industri Kelapa</span><br>Nasional</h1>
+  <h1>Data Spasial, Layer Kustom,<br>dan <span>Analitik Kelapa</span><br>dalam Satu Platform</h1>
   <p class="hero-sub">
-    Platform analitik geospasial berbasis data untuk pemetaan lahan, evaluasi kesesuaian, rantai pasok, dan pengambilan keputusan investasi kelapa Indonesia.
+    Upload layer data Anda sendiri, definisikan atribut dan validasi, jalankan interseksi geometri, dan lihat skor CIAS — semua dalam platform berbasis Cesium 3D yang dapat diakses bersama tim institusi Anda.
   </p>
   <div class="hero-actions">
-    <a class="btn-primary-lg" href="PetaKelapa.html">
-      &#127758; Buka Platform
-    </a>
-    <a class="btn-ghost-lg" href="#fitur">
-      Pelajari Fitur &rarr;
-    </a>
+    <a class="btn-primary-lg" href="PetaKelapa.html">&#127758; Buka Platform</a>
+    <a class="btn-ghost-lg" href="#fitur">Pelajari Fitur &rarr;</a>
   </div>
-
   <div class="hero-stats">
-    <div class="hs-item">
-      <div class="hs-val">514+</div>
-      <div class="hs-label">Kab/Kota dipetakan</div>
-    </div>
-    <div class="hs-item">
-      <div class="hs-val">3.61M</div>
-      <div class="hs-label">ha lahan kelapa</div>
-    </div>
-    <div class="hs-item">
-      <div class="hs-val">18+</div>
-      <div class="hs-label">Layer data aktif</div>
-    </div>
+    <div class="hs-item"><div class="hs-val">514+</div><div class="hs-label">Kab/Kota dipetakan</div></div>
+    <div class="hs-item"><div class="hs-val">3.61 jt</div><div class="hs-label">ha lahan kelapa</div></div>
+    <div class="hs-item"><div class="hs-val">24+</div><div class="hs-label">Layer data bawaan</div></div>
+    <div class="hs-item"><div class="hs-val">5</div><div class="hs-label">Format upload didukung</div></div>
   </div>
 </section>
 
 <!-- APP PREVIEW -->
 <div class="preview-wrap">
   <div class="preview-inner">
-    <div class="preview-label">Tampilan Aplikasi</div>
+    <div class="preview-label">Tampilan Aplikasi — Layer Manager &amp; Analitik</div>
     <div class="preview-frame">
       <div class="pf-bar">
-        <div class="pf-dot"></div>
-        <div class="pf-dot"></div>
-        <div class="pf-dot"></div>
-        <div class="pf-url">petakelapa.id/peta</div>
+        <div class="pf-dot"></div><div class="pf-dot"></div><div class="pf-dot"></div>
+        <div class="pf-url">&#128274;&nbsp; petakelapa.id/peta</div>
       </div>
       <div class="pf-body">
         <!-- Rail -->
@@ -587,66 +348,63 @@ body {
           <div class="pf-rail-brand">&#127810;</div>
           <div class="pf-rail-btn on">&#128506;</div>
           <div class="pf-rail-btn">&#128202;</div>
-          <div class="pf-rail-btn">&#128196;</div>
-          <div class="pf-rail-btn">&#9881;</div>
         </div>
-        <!-- Sidebar -->
+        <!-- Sidebar with user layers -->
         <div class="pf-sidebar">
-          <div class="pf-sb-title">Layer Peta</div>
-          <div class="pf-layer on">
-            <div class="pf-layer-dot" style="background:#2D6A4F"></div>
-            Kesesuaian Lahan
-            <div class="pf-toggle" style="margin-left:auto"></div>
+          <div class="pf-sb-head">
+            <div class="pf-sb-title">Layer Manager</div>
+            <div class="pf-sb-btns">
+              <div class="pf-sb-btn">&#9776;</div>
+              <div class="pf-sb-btn add">+</div>
+              <div class="pf-sb-btn">&#9003;</div>
+            </div>
           </div>
-          <div class="pf-layer">
-            <div class="pf-layer-dot" style="background:#F4A261"></div>
-            Produksi Kelapa
-            <div class="pf-toggle off" style="margin-left:auto"></div>
-          </div>
-          <div class="pf-layer">
-            <div class="pf-layer-dot" style="background:#4A90D9"></div>
-            Pelabuhan Ekspor
-            <div class="pf-toggle off" style="margin-left:auto"></div>
-          </div>
-          <div class="pf-layer">
-            <div class="pf-layer-dot" style="background:#E76F51"></div>
-            Pabrik Pengolahan
-            <div class="pf-toggle off" style="margin-left:auto"></div>
-          </div>
-          <div class="pf-layer">
-            <div class="pf-layer-dot" style="background:#9C6ADE"></div>
-            Zona Risiko Bencana
-            <div class="pf-toggle off" style="margin-left:auto"></div>
-          </div>
+          <div class="pf-group-label">Pertanian</div>
+          <div class="pf-layer on"><div class="pf-layer-dot" style="background:#2D6A4F"></div>Kebun Kelapa (density)<div class="pf-toggle"></div></div>
+          <div class="pf-layer on"><div class="pf-layer-dot" style="background:#52A77D"></div>Produksi per Kab.<div class="pf-toggle"></div></div>
+          <div class="pf-group-label">Lingkungan</div>
+          <div class="pf-layer"><div class="pf-layer-dot" style="background:#4A90D9"></div>Curah Hujan<div class="pf-toggle off"></div></div>
+          <div class="pf-layer"><div class="pf-layer-dot" style="background:#7BB8F5"></div>Elevasi SRTM<div class="pf-toggle off"></div></div>
+          <!-- User layers section -->
+          <div class="pf-group-label user">&#9672; Layer Saya</div>
+          <div class="pf-layer user-on"><div class="pf-layer-sq" style="background:#E76F51"></div>Suhu Rata-rata Malang<div class="pf-shared-tag" style="margin-left:auto;margin-right:4px">SHARED</div><div class="pf-toggle" style="background:#E76F51"></div></div>
+          <div class="pf-layer user-on"><div class="pf-layer-sq" style="background:#9B7BD1"></div>Titik Sumur Irigasi<div class="pf-toggle" style="background:#9B7BD1;margin-left:auto"></div></div>
         </div>
         <!-- Map -->
         <div class="pf-map">
           <div class="pf-map-grid"></div>
-          <div class="pf-map-blob" style="width:180px;height:130px;background:#52A77D;top:40px;left:60px;"></div>
-          <div class="pf-map-blob" style="width:120px;height:100px;background:#74C69D;top:100px;left:180px;border-radius:50% 60% 40% 55%;"></div>
-          <div class="pf-map-blob" style="width:90px;height:80px;background:#95D5B2;top:60px;left:260px;border-radius:55% 45% 60% 40%;"></div>
-          <div class="pf-map-blob" style="width:60px;height:55px;background:#B7E4C7;top:150px;left:100px;border-radius:45% 55% 50% 50%;"></div>
-          <div class="pf-hud">&#128205; 1.23°S, 116.85°E &nbsp;|&nbsp; zoom 7</div>
+          <div class="pf-blob" style="width:190px;height:140px;background:#52A77D;top:40px;left:50px;opacity:0.75"></div>
+          <div class="pf-blob" style="width:130px;height:110px;background:#74C69D;top:110px;left:170px;border-radius:50% 60% 40% 55%;opacity:0.7"></div>
+          <div class="pf-blob" style="width:95px;height:85px;background:#95D5B2;top:55px;left:260px;border-radius:55% 45% 60% 40%;opacity:0.65"></div>
+          <div class="pf-blob" style="width:55px;height:50px;background:#F4A261;top:155px;left:95px;border-radius:50%;opacity:0.6"></div>
+          <div class="pf-blob" style="width:40px;height:40px;background:#E76F51;top:170px;left:230px;border-radius:50%;opacity:0.7"></div>
+          <div class="pf-hud">&#128205; 1.23°S, 116.85°E &nbsp;|&nbsp; Cesium 3D · zoom 7</div>
           <div class="pf-pill">
-            <div class="pf-pill-tab on">2D Peta</div>
-            <div class="pf-pill-tab">3D Globe</div>
-            <div class="pf-pill-tab">Analitik</div>
+            <div class="pf-pill-tab on">Peta</div>
+            <div class="pf-pill-tab">CIAS</div>
+            <div class="pf-pill-tab">Interseksi</div>
+            <div class="pf-pill-tab">Kesesuaian</div>
           </div>
         </div>
         <!-- Right panel -->
         <div class="pf-right">
-          <div class="pf-eyebrow">Kabupaten Terpilih</div>
+          <div class="pf-eyebrow">Land Details · Riau</div>
           <div class="pf-rp-title">Kab. Indragiri Hilir</div>
-          <div class="pf-rp-sub">Riau &middot; Sumatera</div>
+          <div class="pf-rp-sub">Tier 1 &middot; 320,4 rb km²</div>
           <div class="pf-gauge">
-            <div class="pf-gauge-val">82</div>
-            <div class="pf-gauge-label">Skor CIAS</div>
+            <div class="pf-gauge-val">0.89</div>
+            <div class="pf-gauge-label">CIAS Score</div>
+            <div class="pf-gauge-sub">Env 0.86 · Proc 0.91 · −Log 0.04</div>
           </div>
-          <div class="pf-mini-row"><span>Luas Lahan</span><b>320.4 rb ha</b></div>
-          <div class="pf-mini-row"><span>Produksi</span><b>1.2 jt ton/th</b></div>
-          <div class="pf-mini-row"><span>Kesesuaian</span><b>Sangat Sesuai</b></div>
-          <div class="pf-mini-row"><span>Pelabuhan</span><b>3 aktif</b></div>
-          <div class="pf-mini-row"><span>LFI Score</span><b>76 / 100</b></div>
+          <div class="pf-mini-row"><span>Produksi</span><b>412.8K t/thn</b></div>
+          <div class="pf-mini-row"><span>LFI Logistik</span><b>0.87</b></div>
+          <div class="pf-mini-row"><span>Pelabuhan</span><b>Pel. Dumai · 38 km</b></div>
+          <!-- User layer CIAS -->
+          <div class="pf-cias-ul">
+            <div class="pf-ul-head">CIAS · User Layers</div>
+            <div class="pf-ul-row"><span>Suhu Rata-rata Malang</span><div class="pf-ul-score">0.81</div></div>
+            <div class="pf-ul-row"><span>Titik Sumur Irigasi</span><div class="pf-ul-score">0.74</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -656,140 +414,343 @@ body {
 <!-- FEATURES -->
 <section class="features" id="fitur">
   <div class="section-label">Fitur Utama</div>
-  <div class="section-title">Semua yang Anda butuhkan<br>dalam satu platform</div>
-  <p class="section-sub">Dari pemetaan kesesuaian lahan hingga simulasi investasi — analisis data kelapa Indonesia secara komprehensif.</p>
-
+  <div class="section-title">Platform lengkap untuk<br>setiap tahap analisis</div>
+  <p class="section-sub">Dari upload data hingga interseksi multi-layer dan kolaborasi tim — semua tersedia dalam satu alat.</p>
   <div class="features-grid">
+
+    <div class="feat-card accent-border">
+      <div class="feat-icon green">&#43;</div>
+      <div class="feat-title">Tambah Layer Kustom</div>
+      <p class="feat-desc">Definisikan layer baru dengan tipe geometri (polygon, titik, garis, raster, mesh 3D), atribut, dan aturan validasi sendiri. Layer langsung muncul sebagai overlay di peta Cesium.</p>
+      <span class="feat-tag">Baru</span>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon amber">&#8691;</div>
+      <div class="feat-title">Upload Multi-Format</div>
+      <p class="feat-desc">Upload data spasial dalam format GeoJSON, Shapefile, GeoTIFF, CSV (titik), KML, glTF (mesh 3D), hingga LiDAR LAZ. Validasi atribut otomatis sesuai rule yang Anda definisikan.</p>
+      <span class="feat-tag amber">5 Format</span>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon blue">&#9651;</div>
+      <div class="feat-title">Intersection Type Explorer</div>
+      <p class="feat-desc">Lihat tipe geometri hasil interseksi dua layer: polygon ∩ titik = titik, garis ∩ garis = titik, polygon ∩ garis = garis. Matriks referensi tersedia di panel Interseksi.</p>
+      <span class="feat-tag blue">Geometri</span>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon green">&#128202;</div>
+      <div class="feat-title">Skor CIAS Multi-Layer</div>
+      <p class="feat-desc">Coconut Industrial Attractiveness Score kini merangkum layer sistem dan layer kustom Anda. Setiap grup layer (misalnya "Lingkungan") mendapat skor CIAS tersendiri.</p>
+      <span class="feat-tag">CIAS</span>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon amber">&#10753;</div>
+      <div class="feat-title">Layer Groups</div>
+      <p class="feat-desc">Kelompokkan layer-layer terpilih menjadi satu grup tematik (cth: Lingkungan, Sosial Ekonomi, Infrastruktur). Multi-select di sidebar, lalu satu klik buat grup.</p>
+      <span class="feat-tag amber">Organisasi</span>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon purple">&#128100;</div>
+      <div class="feat-title">Autentikasi Institusi</div>
+      <p class="feat-desc">Daftar dengan institusi/grup Anda (Kementan, IPB, swasta, dsb.). Layer yang dibagikan (shared) hanya dapat diakses oleh anggota institusi yang sama — privasi data terjaga.</p>
+      <span class="feat-tag purple">Kolaborasi</span>
+    </div>
+
     <div class="feat-card">
       <div class="feat-icon green">&#128506;</div>
-      <div class="feat-title">Peta Kesesuaian Lahan</div>
-      <p class="feat-desc">Visualisasi interaktif kesesuaian lahan kelapa berdasarkan 18+ sub-layer: curah hujan, jenis tanah, topografi, dan lebih banyak lagi.</p>
+      <div class="feat-title">Peta Cesium 3D Interaktif</div>
+      <p class="feat-desc">Globe 3D berbasis Cesium.js dengan overlay layer vector dan raster, hover tooltip, mode bar 3D, dan kontrol zoom/tilt. Fallback SVG 2D jika token tidak tersedia.</p>
+      <span class="feat-tag">Cesium</span>
     </div>
+
     <div class="feat-card">
-      <div class="feat-icon amber">&#128202;</div>
-      <div class="feat-title">Skor CIAS</div>
-      <p class="feat-desc">Coconut Investment Attractiveness Score — indeks komposit yang mengukur daya tarik investasi per kabupaten secara terstandarisasi.</p>
+      <div class="feat-icon blue">&#128300;</div>
+      <div class="feat-title">Interseksi Multi-Kriteria</div>
+      <p class="feat-desc">Bangun query "WHERE pH &gt; 5.5 AND curah hujan &gt; 1500mm AND elevasi &lt; 600m" — hasil divisualisasikan di peta dan dirangkum dalam skor CIAS gabungan.</p>
+      <span class="feat-tag blue">Analitik</span>
     </div>
+
     <div class="feat-card">
-      <div class="feat-icon blue">&#9881;</div>
-      <div class="feat-title">Simulasi Skenario</div>
-      <p class="feat-desc">Simulasikan dampak peningkatan produktivitas, perubahan harga, atau perluasan lahan terhadap nilai ekonomi wilayah.</p>
+      <div class="feat-icon amber">&#128196;</div>
+      <div class="feat-title">Simulasi Skenario &amp; Komparasi</div>
+      <p class="feat-desc">Simulasikan dampak kebijakan terhadap CIAS nasional, bandingkan hingga 4 kabupaten secara side-by-side dengan radar chart, dan ekspor ke CSV/GeoJSON.</p>
+      <span class="feat-tag amber">Simulasi</span>
     </div>
-    <div class="feat-card">
-      <div class="feat-icon green">&#128196;</div>
-      <div class="feat-title">Interseksi Multi-Layer</div>
-      <p class="feat-desc">Temukan kabupaten yang memenuhi kriteria kombinasi: kesesuaian lahan tinggi, infrastruktur memadai, dan risiko rendah sekaligus.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon amber">&#127968;</div>
-      <div class="feat-title">Rantai Pasok Kelapa</div>
-      <p class="feat-desc">Visualisasi alur rantai pasok dari kebun ke pabrik hingga pelabuhan ekspor, lengkap dengan metrik logistik per wilayah.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon blue">&#128101;</div>
-      <div class="feat-title">Komparasi Wilayah</div>
-      <p class="feat-desc">Bandingkan hingga 3 kabupaten secara side-by-side dengan radar chart dimensi iklim, tanah, infrastruktur, dan ekonomi.</p>
+
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section class="workflow" id="alur">
+  <div class="section-label">Cara Kerja</div>
+  <div class="section-title">Dari data mentah ke keputusan</div>
+  <p class="section-sub">Alur kerja terstruktur — dari upload hingga analitik kolaboratif tim Anda.</p>
+  <div class="workflow-inner">
+    <div class="workflow-steps">
+      <div class="ws-item">
+        <div class="ws-num step1">&#128100;</div>
+        <div class="ws-title">Daftar &amp; Pilih Institusi</div>
+        <p class="ws-desc">Buat akun, pilih institusi/grup Anda. Akses layer yang dibagikan rekan satu tim.</p>
+      </div>
+      <div class="ws-item">
+        <div class="ws-num step2">&#43;</div>
+        <div class="ws-title">Tambah &amp; Upload Layer</div>
+        <p class="ws-desc">Definisikan tipe geometri, atribut, validasi, lalu upload file. Layer langsung aktif di peta.</p>
+      </div>
+      <div class="ws-item">
+        <div class="ws-num step3">&#9651;</div>
+        <div class="ws-title">Interseksi &amp; Analisis</div>
+        <p class="ws-desc">Jalankan query multi-kriteria, lihat tipe geometri hasil, dan baca skor CIAS gabungan.</p>
+      </div>
+      <div class="ws-item">
+        <div class="ws-num step4">&#10753;</div>
+        <div class="ws-title">Grup &amp; Kolaborasi</div>
+        <p class="ws-desc">Buat layer group tematik, bagikan ke tim institusi, ekspor laporan CSV/GeoJSON/PDF.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ROLES -->
+<!-- INTERSECTION DEMO -->
+<section class="intersect-section">
+  <div class="intersect-inner">
+    <div class="intersect-text">
+      <div class="section-label" style="text-align:left">Intersection Type Explorer</div>
+      <h2 style="font-size:clamp(22px,3vw,34px);font-weight:700;letter-spacing:-0.02em;margin-bottom:14px;line-height:1.2">Tahu persis tipe geometri<br>hasil interseksi Anda</h2>
+      <p>Saat Anda menginterseksikan dua layer dengan tipe geometri berbeda, platform otomatis menghitung dan menampilkan tipe data hasil — polygon, garis, atau titik.</p>
+      <p>Prinsip dimensi: data dengan dimensi lebih tinggi yang diinterseksikan dengan dimensi lebih rendah menghasilkan data dimensi lebih rendah.</p>
+      <div class="intersect-pills">
+        <span class="ip green">⬡ Polygon ∩ ⬤ Titik = ⬤ Titik</span>
+        <span class="ip amber">〰 Garis ∩ 〰 Garis = ⬤ Titik</span>
+        <span class="ip green">⬡ Polygon ∩ 〰 Garis = 〰 Garis</span>
+        <span class="ip blue">▦ Raster ∩ ⬤ Titik = ⬤ Sample</span>
+      </div>
+    </div>
+    <div>
+      <div class="intersect-matrix">
+        <div class="im-head">Matriks Tipe Hasil Interseksi</div>
+        <table class="im-table">
+          <thead>
+            <tr>
+              <th>∩</th>
+              <th>▦ Raster</th>
+              <th>⬡ Polygon</th>
+              <th>〰 Garis</th>
+              <th>⬤ Titik</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>▦ Raster</td>
+              <td class="hi">▦ Raster</td>
+              <td>▦ Clip</td>
+              <td>〰 Profil</td>
+              <td>⬤ Sample</td>
+            </tr>
+            <tr>
+              <td>⬡ Polygon</td>
+              <td>▦ Clip</td>
+              <td class="hi">⬡ Polygon</td>
+              <td>〰 Garis</td>
+              <td>⬤ Titik</td>
+            </tr>
+            <tr>
+              <td>〰 Garis</td>
+              <td>〰 Profil</td>
+              <td>〰 Garis</td>
+              <td class="hi">⬤ Titik</td>
+              <td>⬤ Titik</td>
+            </tr>
+            <tr>
+              <td>⬤ Titik</td>
+              <td>⬤ Sample</td>
+              <td>⬤ Titik</td>
+              <td>⬤ Titik</td>
+              <td class="hi">⬤ Titik</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:11px;color:var(--ink-3);margin-top:8px;text-align:center">Matriks ini tersedia langsung di panel Interseksi → tab "Tipe Geometri Hasil"</p>
+    </div>
+  </div>
+</section>
+
+<!-- USER ROLES -->
 <section class="roles" id="pengguna">
   <div class="section-label">Pengguna</div>
-  <div class="section-title">Dirancang untuk setiap peran</div>
-  <p class="section-sub">Akses dan fitur disesuaikan berdasarkan profil pengguna yang terdaftar.</p>
-
+  <div class="section-title">Satu platform, empat persona</div>
+  <p class="section-sub">Fitur dan akses data disesuaikan dengan profil institusi yang terdaftar.</p>
   <div class="roles-grid">
+
     <div class="role-card">
-      <div class="role-pill kementan">&#127975; Pemerintah</div>
-      <div class="role-name">Kementan / Pemda</div>
-      <p class="role-desc">Akses lengkap data kesesuaian lahan, upload dataset resmi, dan ekspor laporan kebijakan.</p>
+      <div class="role-pill gov">&#127975; Pemerintah</div>
+      <div class="role-name">Kementan / Pemda / BRIN</div>
+      <p class="role-desc">Upload dan kelola dataset resmi. Tetapkan threshold kesesuaian nasional. Bagikan ke institusi pemerintah terkait.</p>
       <ul class="role-list">
-        <li>Upload & kelola dataset layer</li>
-        <li>Ekspor laporan kecamatan/kabupaten</li>
-        <li>Penetapan threshold kesesuaian</li>
-        <li>Akses data peneliti terverifikasi</li>
+        <li>Upload dataset resmi (GeoTIFF, SHP)</li>
+        <li>Kelola threshold kesesuaian wilayah</li>
+        <li>Ekspor laporan kebijakan</li>
+        <li>Akses layer institusi pemerintah lain</li>
+        <li>Buat layer group tematik nasional</li>
       </ul>
     </div>
+
     <div class="role-card">
-      <div class="role-pill investor">&#128176; Investor</div>
-      <div class="role-name">Investor & Swasta</div>
-      <p class="role-desc">Analisis daya tarik investasi, simulasi skenario, dan identifikasi lokasi prospektif.</p>
+      <div class="role-pill invest">&#128176; Investor &amp; Swasta</div>
+      <div class="role-name">Investor / Perusahaan</div>
+      <p class="role-desc">Evaluasi lokasi investasi, simulasi ROI, dan identifikasi kabupaten dengan CIAS tertinggi untuk derivatif target.</p>
       <ul class="role-list">
-        <li>Skor CIAS per kabupaten</li>
-        <li>Simulasi ROI dan skenario harga</li>
-        <li>Ranking wilayah prioritas</li>
-        <li>Laporan due diligence lokasi</li>
+        <li>Ranking CIAS per kabupaten/derivatif</li>
+        <li>Simulasi skenario kebijakan</li>
+        <li>Komparasi hingga 4 lokasi</li>
+        <li>Upload data internal (private layer)</li>
+        <li>Due diligence dengan data resmi</li>
       </ul>
     </div>
+
     <div class="role-card">
-      <div class="role-pill peneliti">&#128300; Peneliti</div>
-      <div class="role-name">Peneliti & Akademisi</div>
-      <p class="role-desc">Kustomisasi formula CIAS, upload dataset riset, dan analisis geospasial mendalam.</p>
+      <div class="role-pill res">&#128300; Peneliti</div>
+      <div class="role-name">Peneliti / Akademisi</div>
+      <p class="role-desc">Upload dataset riset, definisikan atribut validasi kustom, jalankan analisis interseksi multi-kriteria, dan ekspor data mentah.</p>
       <ul class="role-list">
-        <li>Formula builder CIAS kustom</li>
-        <li>Upload dataset penelitian</li>
-        <li>Interseksi multi-kriteria</li>
-        <li>Ekspor data mentah CSV/GeoJSON</li>
+        <li>Tambah layer kustom + validasi</li>
+        <li>Upload GeoTIFF, GeoJSON, CSV, mesh</li>
+        <li>Interseksi multi-layer dengan CIAS</li>
+        <li>Ekspor GeoJSON / CSV hasil analisis</li>
+        <li>Bagikan layer ke tim riset institusi</li>
       </ul>
     </div>
+
+    <div class="role-card">
+      <div class="role-pill team">&#127968; Tim / Institusi</div>
+      <div class="role-name">Tim Antar-Institusi</div>
+      <p class="role-desc">Anggota institusi yang sama dapat mengakses layer shared, berkolaborasi dalam satu layer group, dan melihat kontribusi data rekan.</p>
+      <ul class="role-list">
+        <li>Akses layer shared institusi</li>
+        <li>Kolaborasi dalam layer group</li>
+        <li>Lihat siapa yang upload tiap layer</li>
+        <li>Toggle on/off layer tim dengan mudah</li>
+        <li>CIAS gabungan layer tim &amp; sistem</li>
+      </ul>
+    </div>
+
   </div>
 </section>
 
-<!-- DATA LAYERS -->
-<section class="layers" id="data">
-  <div class="layers-inner">
-    <div class="section-label">Data</div>
-    <div class="section-title">18+ Layer Data Terintegrasi</div>
-    <p class="section-sub">Dataset geospasial dari berbagai sumber resmi pemerintah dan lembaga riset nasional.</p>
+<!-- UPLOAD FORMATS -->
+<section class="formats-section" id="data">
+  <div class="formats-inner">
+    <div class="section-label">Format Upload</div>
+    <div class="section-title">5 format data spasial didukung</div>
+    <p class="section-sub">Upload data Anda dalam format apapun — validasi atribut dan visualisasi overlay otomatis.</p>
+    <div class="formats-grid">
+      <div class="fmt-card">
+        <div class="fmt-icon">⬡</div>
+        <div class="fmt-title">Polygon</div>
+        <div class="fmt-exts">.geojson .shp .kml .gpkg</div>
+        <div class="fmt-desc">Batas wilayah, tutupan lahan, zona perkebunan</div>
+      </div>
+      <div class="fmt-card">
+        <div class="fmt-icon">⬤</div>
+        <div class="fmt-title">Points</div>
+        <div class="fmt-exts">.geojson .csv .shp .kml</div>
+        <div class="fmt-desc">Lokasi sumur, stasiun cuaca, titik sampling</div>
+      </div>
+      <div class="fmt-card">
+        <div class="fmt-icon">〰</div>
+        <div class="fmt-title">Line</div>
+        <div class="fmt-exts">.geojson .shp .kml .gpkg</div>
+        <div class="fmt-desc">Jaringan jalan, sungai, saluran irigasi</div>
+      </div>
+      <div class="fmt-card">
+        <div class="fmt-icon">▦</div>
+        <div class="fmt-title">Raster</div>
+        <div class="fmt-exts">.tif .tiff .geotiff .nc .asc</div>
+        <div class="fmt-desc">Elevasi DEM, curah hujan, suhu, NDVI grid</div>
+      </div>
+      <div class="fmt-card">
+        <div class="fmt-icon">⬡̈</div>
+        <div class="fmt-title">Mesh 3D</div>
+        <div class="fmt-exts">.obj .gltf .glb .las .laz</div>
+        <div class="fmt-desc">Model terrain 3D, LiDAR point cloud</div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:18px;font-size:12.5px;color:var(--ink-3)">Semua format menggunakan sistem koordinat EPSG:4326 (WGS84) · Maks. 200 MB</p>
+  </div>
+</section>
 
+<!-- DATA LAYERS BAWAAN -->
+<section class="layers-section">
+  <div class="layers-inner">
+    <div class="section-label">Data Sistem</div>
+    <div class="section-title">24+ Layer Data Bawaan</div>
+    <p class="section-sub">Dataset terintegrasi dari sumber resmi — dapat ditoggle, diatur threshold, dan di-override dengan data Anda sendiri.</p>
     <div class="layers-grid">
-      <div class="layer-chip"><div class="lc-dot" style="background:#2D6A4F"></div>Kesesuaian Lahan S1/S2/S3</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#52A77D"></div>Curah Hujan Tahunan</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#74C69D"></div>Jenis & Tekstur Tanah</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#95D5B2"></div>Topografi & Ketinggian</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#F4A261"></div>Produksi Kelapa (ton/ha)</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#E8A87C"></div>Luas Panen Kebun</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#D4845A"></div>Produktivitas Petani</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#4A90D9"></div>Pelabuhan Ekspor</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#5BA3E8"></div>Pabrik Pengolahan</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#6CB6F5"></div>Jaringan Jalan Utama</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#E76F51"></div>Zona Risiko Banjir</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#F4A261"></div>Zona Risiko Kekeringan</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#9C6ADE"></div>Gempa & Risiko Bencana</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#28A745"></div>NDVI / Vegetasi</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#20C997"></div>Harga Kopra Regional</div>
-      <div class="layer-chip"><div class="lc-dot" style="background:#17A2B8"></div>Ekspor Produk Kelapa</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#2D6A4F"></div>Perkebunan Kelapa (density)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#52A77D"></div>Produksi per Kabupaten (BPS)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#74C69D"></div>Pabrik Pengolahan Derivatif</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#4A90D9"></div>Pelabuhan Ekspor &amp; Kelas</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#7BB8F5"></div>Curah Hujan (WorldClim v2.1)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#5BA3E8"></div>Suhu Rata-rata Tahunan</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#6CB6F5"></div>Elevasi SRTM DEM</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#F4A261"></div>pH H₂O 15–30cm (SoilGrids)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#E8A87C"></div>Clay Content 15–30cm</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#D4845A"></div>Sand Content 15–30cm</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#C07040"></div>Soil Organic Carbon</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#A05C28"></div>Nitrogen 15–30cm</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#805018"></div>CEC 15–30cm</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#9C6ADE"></div>Bulk Density 60–100cm</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#E76F51"></div>Jalan (OSM 2026)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#28A745"></div>Sungai &amp; Perairan (OSM)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#20C997"></div>Penggunaan Lahan (OSM)</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#17A2B8"></div>Night Light VIIRS 2025</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#6F42C1"></div>Coarse Fragments</div>
+      <div class="layer-chip"><div class="lc-dot" style="background:#FD7E14"></div>Bangunan OSM</div>
+      <div class="layer-chip" style="border-style:dashed;color:var(--ink-2)"><div class="lc-dot" style="background:var(--ink-4)"></div><span>+ Layer Kustom Anda</span></div>
+      <div class="layer-chip" style="border-style:dashed;color:var(--ink-2)"><div class="lc-dot" style="background:var(--ink-4)"></div><span>+ Layer Institusi Shared</span></div>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
 <section class="cta-section">
-  <div class="cta-badge">&#127810; Siap digunakan</div>
-  <h2>Mulai analisis kelapa<br>Indonesia sekarang</h2>
-  <p>Daftar gratis dan akses seluruh fitur platform geospasial PetaKelapa.id.</p>
-  <a class="btn-white" href="PetaKelapa.html">
-    &#9654;&#65038; Buka Platform &rarr;
-  </a>
+  <div class="cta-badge">&#127810; Siap digunakan hari ini</div>
+  <h2>Mulai analisis spasial<br>kelapa Indonesia sekarang</h2>
+  <p>Daftar gratis dengan institusi Anda dan akses seluruh fitur — upload layer, interseksi geometri, dan kolaborasi tim.</p>
+  <a class="btn-white" href="PetaKelapa.html">&#9654;&#65038; Buka Platform &rarr;</a>
+  <div class="cta-inst-list">
+    <span class="cta-inst">Kementerian Pertanian RI</span>
+    <span class="cta-inst">BPS</span>
+    <span class="cta-inst">BRIN / LAPAN</span>
+    <span class="cta-inst">IPB University</span>
+    <span class="cta-inst">UGM</span>
+    <span class="cta-inst">ITS</span>
+    <span class="cta-inst">Swasta &amp; NGO</span>
+  </div>
 </section>
 
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-brand">
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
       <rect width="32" height="32" rx="8" fill="#2D6A4F"/>
       <path d="M16 6C16 6 9 10 9 18C9 22.4 12.1 26 16 26C19.9 26 23 22.4 23 18C23 10 16 6 16 6Z" fill="white" opacity="0.9"/>
       <path d="M16 12C16 12 12 15 12 19C12 21.2 13.8 23 16 23C18.2 23 20 21.2 20 19C20 15 16 12 16 12Z" fill="#2D6A4F"/>
       <path d="M16 26V20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <span class="footer-brand-name">PetaKelapa.id</span>
+    <span class="footer-brand-name">PetaKelapa<span style="color:var(--primary)">.id</span></span>
   </div>
-  <span class="footer-copy">&copy; 2025 PetaKelapa.id &mdash; Platform Geospasial Industri Kelapa Indonesia</span>
+  <span class="footer-copy">&copy; 2026 PetaKelapa.id &mdash; Platform Geospasial Industri Kelapa Indonesia</span>
   <div class="footer-links">
     <a href="PetaKelapa.html">Masuk</a>
     <a href="#fitur">Fitur</a>
-    <a href="#data">Data</a>
+    <a href="#data">Format Data</a>
+    <a href="#pengguna">Pengguna</a>
   </div>
 </footer>
 

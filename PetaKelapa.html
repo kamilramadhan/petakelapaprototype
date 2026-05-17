@@ -890,33 +890,6 @@ input[type=range]::-webkit-slider-thumb {
   font-size: 12px;
 }
 
-/* Kesesuaian derivatif selector */
-.kesesuaian-ctrl {
-  position: absolute;
-  top: 16px; right: 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  display: flex; align-items: center; gap: 8px;
-  box-shadow: var(--shadow-soft);
-  z-index: 12;
-}
-.kesesuaian-ctrl .kc-label {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-}
-.kesesuaian-ctrl select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-}
-
 /* ============================================
    GENERIC MODAL (for sub-layer threshold / upload dialogs)
    ============================================ */
@@ -1785,6 +1758,92 @@ input[type=range]::-webkit-slider-thumb {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ============================================
+   USER LAYER / LAYER MANAGER ADDITIONS
+   ============================================ */
+.sb-layer-entry { border-bottom: 1px solid var(--border-soft); }
+.sb-layer-entry:last-child { border-bottom: 0; }
+
+/* Shared-layer badge in sidebar */
+.shared-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+  background: var(--info-bg); color: var(--info-ink);
+  padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+}
+
+/* User layer section header in sidebar */
+.sb-user-section-head {
+  padding: 7px 16px 3px;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent);
+  border-top: 1px solid var(--border-soft);
+}
+
+/* Add-layer prompt button */
+.sb-add-prompt {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 10px 16px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font);
+}
+.sb-add-prompt:hover { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--primary); }
+
+/* Multi-select bar */
+.sb-multiselect-bar {
+  padding: 6px 14px 4px;
+  font-size: 11px; color: var(--primary-ink);
+  background: var(--primary-soft);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sb-multiselect-bar button {
+  background: var(--primary); color: white;
+  border: 0; border-radius: 5px; padding: 3px 10px;
+  font-size: 11px; cursor: pointer;
+}
+
+/* Intersection type table highlight */
+.intersect-highlight { background: var(--primary-soft) !important; font-weight: 700 !important; }
+
+/* CIAS intersection result card */
+.cias-intersect-card {
+  background: linear-gradient(135deg, var(--primary-soft), #EEF7F1);
+  border: 1px solid #C8E0D2;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+.cias-intersect-card .cic-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;
+}
+.cias-intersect-card .cic-cell {
+  background: var(--bg); border-radius: 6px; padding: 8px 10px; text-align: center;
+}
+.cias-intersect-card .cic-label {
+  font-size: 9.5px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.cias-intersect-card .cic-val {
+  font-size: 15px; font-weight: 700; color: var(--primary); margin-top: 2px;
+}
+
+/* InterseksiPanel sub-tabs */
+.interseksi-subtab {
+  background: none; border: 0;
+  padding: 10px 14px; font-size: 12.5px; font-weight: 500;
+  color: var(--ink-2);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; margin-bottom: -1px;
+}
+.interseksi-subtab.on { color: var(--primary); border-bottom-color: var(--primary); }
+
 .full-loading {
   position: fixed; inset: 0;
   display: grid; place-items: center;
@@ -1855,6 +1914,7 @@ input[type=range]::-webkit-slider-thumb {
 <script type="text/babel" src="map.jsx"></script>
 <script type="text/babel" src="cesium-map.jsx"></script>
 <script type="text/babel" src="panels.jsx"></script>
+<script type="text/babel" src="layer-manager.jsx"></script>
 <script type="text/babel" src="app.jsx"></script>
 
 </body>

@@ -82,6 +82,79 @@ function Dashboard({ user, onLogout }) {
   // Layer data overrides — when user uploads, mark the layer as "user-data"
   const [layerOverrides, setLayerOverrides] = useState({});
 
+  // User-created layers (persisted)
+  const [userLayers, setUserLayers] = useState(() => {
+    try { const r = localStorage.getItem("pkd_user_layers"); return r ? JSON.parse(r) : []; } catch(e) { return []; }
+  });
+
+  // Layer group assignments: { layerId: "GroupName" } — overrides default group for any layer
+  const [groupAssignments, setGroupAssignmentsState] = useState(() => {
+    try { const r = localStorage.getItem("pkd_group_assignments"); return r ? JSON.parse(r) : {}; } catch(e) { return {}; }
+  });
+
+  function setGroupAssignment(layerId, groupName) {
+    const updated = { ...groupAssignments, [layerId]: groupName };
+    setGroupAssignmentsState(updated);
+    localStorage.setItem("pkd_group_assignments", JSON.stringify(updated));
+  }
+
+  // Layer groups (persisted) — kept for backward compat but display handled via groupAssignments
+  const [layerGroups, setLayerGroups] = useState(() => {
+    try { const r = localStorage.getItem("pkd_layer_groups"); return r ? JSON.parse(r) : []; } catch(e) { return []; }
+  });
+
+  // Modal visibility
+  const [showAddLayer, setShowAddLayer] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [createGroupPreselect, setCreateGroupPreselect] = useState([]);
+  const [editingLayer, setEditingLayer] = useState(null);  // layer object being edited
+  const [drawingMode, setDrawingMode] = useState(null);    // { geomType, pendingForm } | null
+  const [saveIntersectOpen, setSaveIntersectOpen] = useState(false);
+
+  function addUserLayer(layer, groupName) {
+    const newLayers = [...userLayers, layer];
+    setUserLayers(newLayers);
+    localStorage.setItem("pkd_user_layers", JSON.stringify(newLayers));
+    setActiveLayers(prev => new Set([...prev, layer.id]));
+    if (groupName && groupName !== layer.group) setGroupAssignment(layer.id, groupName);
+  }
+
+  function updateUserLayer(updated) {
+    const newLayers = userLayers.map(l => l.id === updated.id ? updated : l);
+    setUserLayers(newLayers);
+    localStorage.setItem("pkd_user_layers", JSON.stringify(newLayers));
+    // Also update group assignment if group changed
+    if (updated.group) setGroupAssignment(updated.id, updated.group);
+  }
+
+  function deleteUserLayer(id) {
+    const newLayers = userLayers.filter(l => l.id !== id);
+    setUserLayers(newLayers);
+    localStorage.setItem("pkd_user_layers", JSON.stringify(newLayers));
+    setActiveLayers(prev => { const n = new Set(prev); n.delete(id); return n; });
+  }
+
+  function saveLayerGroup(name, layerIds) {
+    const existing = layerGroups.find(g => g.name === name);
+    let updated;
+    if (existing) {
+      updated = layerGroups.map(g => g.name === name ? { ...g, layerIds: [...new Set([...g.layerIds, ...layerIds])] } : g);
+    } else {
+      updated = [...layerGroups, { name, layerIds }];
+    }
+    setLayerGroups(updated);
+    localStorage.setItem("pkd_layer_groups", JSON.stringify(updated));
+    // Apply group assignment to each layer
+    layerIds.forEach(id => setGroupAssignment(id, name));
+  }
+
+  // All existing group names for dropdowns
+  const existingGroupNames = [...new Set([
+    ...PKD.LAYERS.map(g => g.group),
+    ...Object.values(groupAssignments),
+    ...userLayers.map(l => l.group).filter(Boolean),
+  ])].filter(Boolean);
+
   // Selections
   const [selectedKab, setSelectedKab] = useState(null);
   const [selectedPort, setSelectedPort] = useState(null);
@@ -169,11 +242,17 @@ function Dashboard({ user, onLogout }) {
             setActive={setActiveLayers}
             opacities={opacities}
             setOpacities={setOpacities}
-            allowedGroups={null}
             onAdjustThreshold={(id) => setThresholdEditor(id)}
             onUpload={(id) => setUploadEditor(id)}
             thresholds={thresholds}
             layerOverrides={layerOverrides}
+            userLayers={userLayers}
+            groupAssignments={groupAssignments}
+            setGroupAssignment={setGroupAssignment}
+            onAddLayer={() => setShowAddLayer(true)}
+            onEditLayer={(layer) => setEditingLayer(layer)}
+            onCreateGroup={(presel) => { setCreateGroupPreselect(presel || []); setShowCreateGroup(true); }}
+            user={user}
           />
 
           <main className="map-area">
@@ -190,6 +269,8 @@ function Dashboard({ user, onLogout }) {
                 intersectionHits={mode === "interseksi" ? intersectionHits : null}
                 bar3D={bar3D}
                 scenarioDelta={scenarioDelta}
+                userLayers={userLayers}
+                opacities={opacities}
               />
             ) : (
               <PetaMap
@@ -204,14 +285,13 @@ function Dashboard({ user, onLogout }) {
                 intersectionHits={mode === "interseksi" ? intersectionHits : null}
                 bar3D={bar3D}
                 scenarioDelta={scenarioDelta}
+                userLayers={userLayers}
+                opacities={opacities}
               />
             )}
 
             <MapToolbar />
             <Legend mode={mode} derivatifFilter={mode === "investasi" ? investDerivatif : derivatifFilter} />
-            {mode === "investasi" && (
-              <KesesuaianControl derivatif={investDerivatif} setDerivatif={setInvestDerivatif} />
-            )}
 
             <ModePill
               modes={["default", "cias", "investasi", "interseksi"]}
@@ -252,6 +332,40 @@ function Dashboard({ user, onLogout }) {
                 onRun={runIntersection}
                 conditions={conditions} setConditions={setConditions}
                 hits={intersectionHits} runtime={intersectionRuntime}
+                userLayers={userLayers}
+                onSaveAsLayer={() => setSaveIntersectOpen(true)}
+              />
+            )}
+
+            {/* Drawing mode overlay */}
+            {drawingMode && (
+              <DrawingOverlay
+                geomType={drawingMode.geomType}
+                onComplete={(pts, coords, gType) => {
+                  const form = drawingMode.pendingForm;
+                  const groupName = form.group === "__new" ? form.newGroup : form.group;
+                  const layer = {
+                    id: "user-" + Date.now(),
+                    name: form.name,
+                    geomType: gType || form.geomType,
+                    description: form.description,
+                    group: groupName || "User Layers",
+                    color: form.color,
+                    shared: form.shared,
+                    attributes: form.attributes,
+                    drawnPoints: coords,
+                    fileName: null,
+                    createdBy: user?.email,
+                    instansi: user?.instansi,
+                    createdAt: new Date().toISOString().slice(0,16).replace("T"," "),
+                    active: true, opacity: 0.75,
+                    validationPassRate: 0.72 + Math.random() * 0.25,
+                    icon: GEOM_TYPES.find(t => t.id === (gType || form.geomType))?.icon || "⬤",
+                  };
+                  addUserLayer(layer, layer.group);
+                  setDrawingMode(null);
+                }}
+                onCancel={() => setDrawingMode(null)}
               />
             )}
           </main>
@@ -264,6 +378,7 @@ function Dashboard({ user, onLogout }) {
             scenarioDelta={scenarioDelta}
             onCompare={addToCompare}
             onSelectKab={clickKab}
+            userLayers={userLayers}
           />
         </div>
 
@@ -297,6 +412,50 @@ function Dashboard({ user, onLogout }) {
               });
               setUploadEditor(null);
             }}
+          />
+        )}
+
+        {showAddLayer && (          <AddLayerModal
+            onClose={() => setShowAddLayer(false)}
+            onSave={(layer, groupName) => { addUserLayer(layer, groupName); }}
+            existingGroups={existingGroupNames}
+            user={user}
+            onStartDrawing={(form) => {
+              setShowAddLayer(false);
+              setDrawingMode({ geomType: form.geomType, pendingForm: form });
+            }}
+          />
+        )}
+
+        {showCreateGroup && (
+          <CreateLayerGroupModal
+            userLayers={userLayers}
+            selectedIds={createGroupPreselect}
+            onClose={() => { setShowCreateGroup(false); setCreateGroupPreselect([]); }}
+            onSave={(name, ids) => {
+              saveLayerGroup(name, ids);
+              // apply group assignment to each selected layer
+              ids.forEach(id => setGroupAssignment(id, name));
+            }}
+          />
+        )}
+
+        {editingLayer && (
+          <EditLayerModal
+            layer={editingLayer}
+            onClose={() => setEditingLayer(null)}
+            onSave={(updated) => updateUserLayer(updated)}
+            onDelete={(id) => deleteUserLayer(id)}
+            allGroupNames={existingGroupNames}
+          />
+        )}
+
+        {saveIntersectOpen && (
+          <SaveIntersectionAsLayer
+            hits={intersectionHits}
+            conditions={conditions}
+            onSave={(layer, groupName) => addUserLayer(layer, groupName)}
+            onClose={() => setSaveIntersectOpen(false)}
           />
         )}
       </div>
@@ -374,17 +533,6 @@ function MapToolbar() {
       <button className="mt-btn" title="Tilt down" onClick={() => window.__pkdMapTilt && window.__pkdMapTilt(-5)}>↓</button>
       <div className="mt-sep" />
       <button className="mt-btn" title="Reset view" onClick={() => window.__pkdMapReset && window.__pkdMapReset()}>⌖</button>
-    </div>
-  );
-}
-
-function KesesuaianControl({ derivatif, setDerivatif }) {
-  return (
-    <div className="kesesuaian-ctrl">
-      <span className="kc-label">Derivatif</span>
-      <select value={derivatif} onChange={e => setDerivatif(e.target.value)}>
-        {PKD.DERIVATIF.map(d => <option key={d} value={d}>{d}</option>)}
-      </select>
     </div>
   );
 }

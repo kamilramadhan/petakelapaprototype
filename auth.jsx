@@ -1,14 +1,40 @@
-// Auth screens — Login + Register, single unified user role.
+// Auth screens — Login + Register with group/institution support.
 // Persists user to localStorage.
 
 const { useState, useEffect } = React;
 
-// Single default role for all registered users.
 const DEFAULT_ROLE = "user";
 
-// Mock seed accounts — single demo account
+// Preset institution groups — layers owned by an institution are visible to all its members
+const INSTITUTIONS = [
+  { id: "kementan",   name: "Kementerian Pertanian RI",        type: "pemerintah" },
+  { id: "bps",        name: "BPS — Badan Pusat Statistik",     type: "pemerintah" },
+  { id: "brin",       name: "BRIN / LAPAN (Penginderaan Jauh)", type: "pemerintah" },
+  { id: "ipb",        name: "IPB University",                   type: "akademik"  },
+  { id: "ugm",        name: "Universitas Gadjah Mada",          type: "akademik"  },
+  { id: "its",        name: "Institut Teknologi Sepuluh Nopember", type: "akademik" },
+  { id: "nusantara",  name: "PT Nusantara Coco Ventures",       type: "swasta"    },
+  { id: "idh",        name: "IDH Sustainable Trade Initiative", type: "ngo"       },
+  { id: "other",      name: "Lainnya (isi manual)",             type: "other"     },
+];
+window.INSTITUTIONS = INSTITUTIONS;
+
 const DEMO_ACCOUNTS = [
-  { email: "demo@petakelapa.id", password: "password123", name: "Sdri. N. Anggraini",  instansi: "PT Nusantara Coco Ventures", role: DEFAULT_ROLE },
+  {
+    email: "demo@petakelapa.id", password: "password123",
+    name: "Sdri. N. Anggraini", instansi: "PT Nusantara Coco Ventures",
+    instansiId: "nusantara", role: DEFAULT_ROLE,
+  },
+  {
+    email: "peneliti@ipb.ac.id", password: "ipb12345",
+    name: "Dr. R. Wijaya", instansi: "IPB University",
+    instansiId: "ipb", role: DEFAULT_ROLE,
+  },
+  {
+    email: "admin@kementan.go.id", password: "kementan123",
+    name: "Bp. A. Pratama", instansi: "Kementerian Pertanian RI",
+    instansiId: "kementan", role: DEFAULT_ROLE,
+  },
 ];
 
 function getAccounts() {
@@ -16,22 +42,17 @@ function getAccounts() {
     const raw = localStorage.getItem("pkd_accounts");
     if (raw) {
       const accs = JSON.parse(raw);
-      // Ensure the current demo account is always present (handles upgrade from old seeds)
-      const hasDemo = accs.some(a => a.email.toLowerCase() === DEMO_ACCOUNTS[0].email.toLowerCase());
-      if (!hasDemo) {
-        const merged = accs.concat(DEMO_ACCOUNTS);
-        localStorage.setItem("pkd_accounts", JSON.stringify(merged));
-        return merged;
-      }
+      DEMO_ACCOUNTS.forEach(demo => {
+        if (!accs.some(a => a.email.toLowerCase() === demo.email.toLowerCase())) accs.push(demo);
+      });
+      localStorage.setItem("pkd_accounts", JSON.stringify(accs));
       return accs;
     }
   } catch (e) {}
   localStorage.setItem("pkd_accounts", JSON.stringify(DEMO_ACCOUNTS));
-  return DEMO_ACCOUNTS;
+  return [...DEMO_ACCOUNTS];
 }
-function saveAccounts(accs) {
-  localStorage.setItem("pkd_accounts", JSON.stringify(accs));
-}
+function saveAccounts(accs) { localStorage.setItem("pkd_accounts", JSON.stringify(accs)); }
 
 window.AuthAPI = {
   SESSION_TTL_DAYS: 7,
@@ -53,53 +74,47 @@ window.AuthAPI = {
     if (v) sessionStorage.removeItem("pkd_session_expired");
     return !!v;
   },
-  appendAccessLog(entry) {
-    try {
-      const raw = localStorage.getItem("pkd_access_log");
-      const log = raw ? JSON.parse(raw) : [];
-      log.unshift({ ...entry, ts: new Date().toISOString().slice(0, 16).replace("T", " ") });
-      localStorage.setItem("pkd_access_log", JSON.stringify(log.slice(0, 100)));
-    } catch (e) {}
-  },
-  getAccessLog() {
-    try {
-      const raw = localStorage.getItem("pkd_access_log");
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
-  },
   login(email, password) {
     const accounts = getAccounts();
     const u = accounts.find(a => a.email.toLowerCase() === email.toLowerCase() && a.password === password);
     if (!u) return { ok: false, error: "Email atau password salah." };
     const expiresAt = Date.now() + this.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-    const session = { name: u.name, email: u.email, instansi: u.instansi, role: u.role || DEFAULT_ROLE, expiresAt };
+    const session = {
+      name: u.name, email: u.email, instansi: u.instansi,
+      instansiId: u.instansiId || "other", role: u.role || DEFAULT_ROLE, expiresAt,
+    };
     localStorage.setItem("pkd_session", JSON.stringify(session));
-    this.appendAccessLog({ event: "LOGIN", user: u.name, email: u.email, role: session.role });
     return { ok: true, user: session };
   },
   register(payload) {
     const accounts = getAccounts();
-    if (accounts.find(a => a.email.toLowerCase() === payload.email.toLowerCase())) {
+    if (accounts.find(a => a.email.toLowerCase() === payload.email.toLowerCase()))
       return { ok: false, error: "Email sudah terdaftar." };
-    }
     const newAcc = { ...payload, role: DEFAULT_ROLE };
     accounts.push(newAcc);
     saveAccounts(accounts);
-    this.appendAccessLog({ event: "REGISTER", user: newAcc.name, email: newAcc.email, role: newAcc.role });
     return { ok: true, user: newAcc };
   },
   finalizeRegistration(payload) {
     const expiresAt = Date.now() + this.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-    const session = { name: payload.name, email: payload.email, instansi: payload.instansi, role: DEFAULT_ROLE, expiresAt };
+    const session = {
+      name: payload.name, email: payload.email,
+      instansi: payload.instansi, instansiId: payload.instansiId || "other",
+      role: DEFAULT_ROLE, expiresAt,
+    };
     localStorage.setItem("pkd_session", JSON.stringify(session));
-    this.appendAccessLog({ event: "VERIFIED", user: payload.name, email: payload.email, role: DEFAULT_ROLE });
     return { ok: true, user: session };
   },
-  logout() {
-    const sess = this.getCurrent();
-    if (sess) this.appendAccessLog({ event: "LOGOUT", user: sess.name, email: sess.email, role: sess.role });
-    localStorage.removeItem("pkd_session");
-  }
+  logout() { localStorage.removeItem("pkd_session"); },
+  // Return all layers (user-created) that belong to same institution as current user
+  getSharedLayersForUser(currentUser) {
+    if (!currentUser) return [];
+    try {
+      const raw = localStorage.getItem("pkd_user_layers");
+      const layers = raw ? JSON.parse(raw) : [];
+      return layers.filter(l => l.shared && l.instansi === currentUser.instansi && l.createdBy !== currentUser.email);
+    } catch (e) { return []; }
+  },
 };
 
 function BrandHeader() {
@@ -128,23 +143,11 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
   const [loading, setLoading] = useState(false);
 
   function submit(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    e.preventDefault(); setError(""); setLoading(true);
     setTimeout(() => {
       const r = AuthAPI.login(email, password);
-      if (r.ok) {
-        onAuthed(r.user);
-      } else {
-        setError(r.error);
-        setLoading(false);
-      }
-    }, 600);
-  }
-
-  function useDemo() {
-    setEmail("demo@petakelapa.id");
-    setPassword("password123");
+      if (r.ok) { onAuthed(r.user); } else { setError(r.error); setLoading(false); }
+    }, 500);
   }
 
   return (
@@ -153,9 +156,7 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
         <BrandHeader />
         <h1 className="auth-h1">Masuk ke akun Anda</h1>
         <p className="auth-sub">Platform geospasial industri kelapa Indonesia</p>
-
         {error && <div className="auth-error">⚠ {error}</div>}
-
         <form onSubmit={submit}>
           <div className="auth-field">
             <label>Email</label>
@@ -166,20 +167,25 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
             <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
           <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? <><span className="spinner" /> Masuk…</> : "Masuk"}
+            {loading ? "Masuk…" : "Masuk"}
           </button>
         </form>
 
         <div className="demo-hint">
-          <b>Coba demo:</b>
-          <div className="demo-row" style={{ marginTop: 6 }}>
-            <button className="use-demo" onClick={useDemo}>demo@petakelapa.id / password123</button>
-          </div>
+          <b>Demo accounts:</b>
+          {DEMO_ACCOUNTS.map(d => (
+            <div key={d.email} className="demo-row" style={{ marginTop: 5 }}>
+              <button className="use-demo" onClick={() => { setEmail(d.email); setPassword(d.password); }}
+                style={{ fontFamily: "var(--mono)", fontSize: 11, background: "none", border: "none", color: "var(--primary)", cursor: "pointer", textAlign: "left" }}>
+                {d.email}
+              </button>
+              <span style={{ fontSize: 10, color: "var(--ink-3)", marginLeft: 6 }}>· {d.instansi}</span>
+            </div>
+          ))}
         </div>
 
         <div className="auth-foot">
-          Belum punya akun?
-          <button onClick={onSwitch}>Daftar</button>
+          Belum punya akun? <button onClick={onSwitch}>Daftar</button>
         </div>
       </div>
     </div>
@@ -188,7 +194,8 @@ window.LoginScreen = function LoginScreen({ onAuthed, onSwitch }) {
 
 window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
   const [form, setForm] = useState({
-    name: "", instansi: "", email: "", password: "", confirm: ""
+    name: "", email: "", password: "", confirm: "",
+    instansiId: "", instansiCustom: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -196,27 +203,28 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
+  const selectedInst = INSTITUTIONS.find(i => i.id === form.instansiId);
+  const instansiName = form.instansiId === "other" ? form.instansiCustom : (selectedInst?.name || "");
+
   function submit(e) {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); setError("");
     if (form.password.length < 6) { setError("Password minimal 6 karakter."); return; }
     if (form.password !== form.confirm) { setError("Konfirmasi password tidak cocok."); return; }
+    if (!instansiName) { setError("Pilih atau isi nama instansi/grup."); return; }
     setLoading(true);
     setTimeout(() => {
       const r = AuthAPI.register({
-        name: form.name, instansi: form.instansi, email: form.email,
-        password: form.password
+        name: form.name, instansi: instansiName, instansiId: form.instansiId,
+        email: form.email, password: form.password,
       });
-      if (r.ok) {
-        setLoading(false);
-        setVerifyStep(true);
-      } else { setError(r.error); setLoading(false); }
-    }, 600);
+      if (r.ok) { setLoading(false); setVerifyStep(true); }
+      else { setError(r.error); setLoading(false); }
+    }, 500);
   }
 
   function finishVerification() {
     const r = AuthAPI.finalizeRegistration({
-      name: form.name, instansi: form.instansi, email: form.email
+      name: form.name, instansi: instansiName, instansiId: form.instansiId, email: form.email,
     });
     if (r.ok) onAuthed(r.user);
   }
@@ -226,33 +234,20 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
       <div className="auth-stage">
         <div className="auth-card">
           <BrandHeader />
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--ok-bg)", color: "var(--ok-ink)", display: "grid", placeItems: "center", margin: "0 auto 18px", fontSize: 28 }}>✉</div>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--ok-bg)", color: "var(--ok-ink)", display: "grid", placeItems: "center", margin: "0 auto 16px", fontSize: 26 }}>✉</div>
           <h1 className="auth-h1" style={{ textAlign: "center" }}>Konfirmasi email Anda</h1>
           <p className="auth-sub" style={{ textAlign: "center" }}>
-            Kami telah mengirim email konfirmasi ke <b style={{ color: "var(--ink)" }}>{form.email}</b>.
-            Silakan klik tautan di dalam email untuk mengaktifkan akun.
+            Link konfirmasi dikirim ke <b style={{ color: "var(--ink)" }}>{form.email}</b>.
           </p>
-          <div style={{ background: "var(--surface)", padding: "14px 16px", borderRadius: 8, marginBottom: 18, fontSize: 12.5, color: "var(--ink-2)" }}>
-            <b style={{ color: "var(--ink)", display: "block", marginBottom: 6 }}>Ringkasan akun:</b>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-              <span>Nama</span><b style={{ color: "var(--ink)" }}>{form.name}</b>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-              <span>Instansi</span><b style={{ color: "var(--ink)" }}>{form.instansi}</b>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-              <span>Email</span><b style={{ color: "var(--ink)" }}>{form.email}</b>
-            </div>
+          <div style={{ background: "var(--surface)", padding: "12px 14px", borderRadius: 8, marginBottom: 16, fontSize: 12.5 }}>
+            <b style={{ color: "var(--ink)", display: "block", marginBottom: 5 }}>Ringkasan akun:</b>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}><span style={{ color: "var(--ink-2)" }}>Nama</span><b>{form.name}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}><span style={{ color: "var(--ink-2)" }}>Grup/Institusi</span><b>{instansiName}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}><span style={{ color: "var(--ink-2)" }}>Email</span><b>{form.email}</b></div>
           </div>
-          <button className="auth-submit" onClick={finishVerification}>
-            ✓ Saya sudah verifikasi — Masuk ke Dashboard
-          </button>
-          <div className="auth-foot">
-            Tidak terima email?
-            <button>Kirim ulang</button>
-          </div>
-          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 14, textAlign: "center", fontStyle: "italic" }}>
-            Demo: tombol di atas memverifikasi akun secara instan.
+          <button className="auth-submit" onClick={finishVerification}>✓ Saya sudah verifikasi — Masuk</button>
+          <p style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 10, textAlign: "center", fontStyle: "italic" }}>
+            Demo: tombol di atas langsung masuk tanpa email sungguhan.
           </p>
         </div>
       </div>
@@ -264,19 +259,43 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
       <div className="auth-card wide">
         <BrandHeader />
         <h1 className="auth-h1">Buat akun baru</h1>
-        <p className="auth-sub">Akses peta kesesuaian wilayah & analitik industri kelapa Indonesia.</p>
-
+        <p className="auth-sub">Layer yang Anda buat dapat dibagikan kepada sesama anggota institusi.</p>
         {error && <div className="auth-error">⚠ {error}</div>}
-
         <form onSubmit={submit}>
           <div className="auth-field">
-            <label>Nama lengkap</label>
+            <label>Nama Lengkap</label>
             <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder="Nama Anda" />
           </div>
+
+          {/* Institution / group selector */}
           <div className="auth-field">
-            <label>Instansi / Perusahaan</label>
-            <input required value={form.instansi} onChange={e => set("instansi", e.target.value)} placeholder="Universitas, perusahaan, atau lembaga" />
+            <label>Grup / Institusi</label>
+            <select required value={form.instansiId} onChange={e => set("instansiId", e.target.value)}
+              style={{ width: "100%", height: 44, padding: "0 12px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 14 }}>
+              <option value="">— Pilih institusi / grup —</option>
+              {["pemerintah", "akademik", "swasta", "ngo", "other"].map(type => (
+                <optgroup key={type} label={type.charAt(0).toUpperCase() + type.slice(1)}>
+                  {INSTITUTIONS.filter(i => i.type === type).map(i => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
+
+          {form.instansiId === "other" && (
+            <div className="auth-field">
+              <label>Nama Institusi / Grup</label>
+              <input value={form.instansiCustom} onChange={e => set("instansiCustom", e.target.value)} placeholder="Nama organisasi Anda" required />
+            </div>
+          )}
+
+          {selectedInst && form.instansiId !== "other" && (
+            <div style={{ background: "var(--primary-soft)", borderRadius: 6, padding: "8px 12px", marginBottom: 12, fontSize: 11.5, color: "var(--primary-ink)" }}>
+              Layer yang dibagikan (shared) akan dapat diakses oleh seluruh anggota <b>{selectedInst.name}</b>.
+            </div>
+          )}
+
           <div className="auth-field">
             <label>Email</label>
             <input type="email" required value={form.email} onChange={e => set("email", e.target.value)} placeholder="nama@instansi.id" />
@@ -292,14 +311,10 @@ window.RegisterScreen = function RegisterScreen({ onAuthed, onSwitch }) {
             </div>
           </div>
           <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? <><span className="spinner" /> Memproses…</> : "Buat Akun"}
+            {loading ? "Memproses…" : "Buat Akun"}
           </button>
         </form>
-
-        <div className="auth-foot">
-          Sudah punya akun?
-          <button onClick={onSwitch}>Masuk</button>
-        </div>
+        <div className="auth-foot">Sudah punya akun? <button onClick={onSwitch}>Masuk</button></div>
       </div>
     </div>
   );
